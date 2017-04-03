@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>jnodes example</title>
+  <style type="text/css">
+li {
+  color: blue;
+  list-style: none;
+}
+em {
+  color: red;
+  font-weight: bold;
+}
+  </style>
+</head>
+<body>
+  <ul id="c2123" >
+    <script type="text/jnodes" render="jhtmls">
+    if (hint) {
+      <li>#{hint}</li>
+    }
+    buttons.forEach(function (button) {
+      <li bind="button">
+        <button>#{button.title}</button>
+      </li>
+    });
+    </script>
+  </ul>
+</body>
+<script src="../jnodes.js"></script>
+<script src="../node_modules/jhtmls/jhtmls.js"></script>
+<script src="../node_modules/h5tap/h5tap.js"></script>
+<script>
+function bind(element, data) {
+  if (!data) {
+    return;
+  }
+  if (typeof element === 'string') {
+    element = document.querySelector(element);
+  }
+  var parentElement;
+  var scriptElement;
+  if (/script/i.test(element.tagName)) {
+    scriptElement = element;
+    parentElement = element.parentNode;
+  } else {
+    scriptElement = element.querySelector('script');
+    parentElement = element;
+  }
+  if (!scriptElement || !parentElement) {
+    return;
+  }
+
+  var render = jnodes.get(scriptElement.getAttribute('render'));
+  if (render) {
+    jnodes.bind(data, function () {
+      parentElement.innerHTML = render(scriptElement.innerHTML, data);
+    }, true).render();
+  }
+}
+
+var root = {
+  buttons: [{
+    title: '保存',
+    cmd: 'save',
+  }, {
+    title: '载入',
+    cmd: 'load',
+  }, {
+    title: '取消',
+    cmd: 'cancel',
+  }],
+  hint: '',
+};
+bind('#c2123', root);
+
+h5tap('#c2123', 'button', function (element) {
+  var data = jnodes.data(element);
+  root.hint = data.cmd;
+});
+</script>
+</html>
