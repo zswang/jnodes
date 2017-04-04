@@ -1,12 +1,23 @@
 {
   "name": "jnodes",
+  "version": "0.0.1",
   "private": true,
+  "scripts": {
+    "dist": "gulp dist",
+    "debug": "gulp"
+  },
+  "author": {
+    "name": "zswang",
+    "url": "http://weibo.com/zswang"
+  },
+  "description": "Front end template data binding.",
   "dependencies": {},
   "devDependencies": {
     "ejs": "^2.5.5",
     "gulp": "^3.9.1",
     "gulp-connect": "^5.0.0",
     "gulp-jdists": "^2.0.0",
+    "gulp-open": "^2.0.0",
     "gulp-rename": "^1.2.2",
     "gulp-replace": "^0.5.4",
     "gulp-uglify": "^2.1.0",

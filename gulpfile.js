@@ -9,10 +9,21 @@ const jdists = require('gulp-jdists')
 const uglify = require('gulp-uglify')
 const rename = require("gulp-rename")
 const replace = require('gulp-replace')
+const open = require('gulp-open')
+
+const port = 20174;
+
+gulp.task('open', function() {
+  gulp
+    .src(__filename)
+    .pipe(open({
+      uri: `http://localhost:${port}/example/base.html`
+    }))
+})
 
 gulp.task('connect', function() {
   connect.server({
-    port: 2017,
+    port: port,
     livereload: true
   })
 })
@@ -38,4 +49,4 @@ gulp.task('build', function() {
     .pipe(gulp.dest('./'))
 })
 
-gulp.task('default', ['build', 'connect', 'watch'])
+gulp.task('default', ['build', 'connect', 'watch', 'open'])

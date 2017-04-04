@@ -1,5 +1,14 @@
 (function (exportName) {
-  var exports = {};
+  var exports = exports || {};
+  /**
+   * @file jnodes
+   *
+   * Front end template data binding.
+   * @author
+   *   zswang (http://weibo.com/zswang)
+   * @version 0.0.1
+   * @date 2017-04-05
+   */
   /*<function name="jnodes_guid">*/
   var jnodes_guid = 0;
   /*</function>*/
@@ -329,7 +338,6 @@
       jnodes_options['updateElement'](element, output.join(''));
     }
     else {
-      console.log(element);
       element.outerHTML = output.join('');
     }
   }
@@ -344,18 +352,15 @@
   function jnodes_data(element) {
     var bind;
     if (typeof element === 'string') {
-      bind = jnodes_binds[id];
+      bind = jnodes_binds[element];
       if (bind) {
         return bind.model;
       }
     } else {
       while (element) {
-        var id = element.getAttribute('bind');
-        if (id) {
-          bind = jnodes_binds[id];
-          if (bind) {
-            return bind.model;
-          }
+        var result = jnodes_data(element.getAttribute('bind'));
+        if (result) {
+            return result;
         }
         element = element.parentNode;
       }
@@ -461,5 +466,18 @@ function jnodes_render_jhtmls(code) {
   jnodes_set('jhtmls', function (template, data) {
     return jhtmls.render(jnodes_render_jhtmls(template), data);
   });
-  window[exportName] = exports;
+  /* istanbul ignore next */
+  if (typeof define === 'function') {
+    if (define.amd || define.cmd) {
+      define(function () {
+        return exports;
+      });
+    }
+  }
+  else if (typeof module !== 'undefined' && module.exports) {
+    module.exports = exports;
+  }
+  else {
+    window[exportName] = exports;
+  }
 })('jnodes');

@@ -1,5 +1,28 @@
 (function (exportName) {
-  var exports = {};
+  /*<remove>*/
+  'use strict';
+  /*</remove>*/
+
+  var exports = exports || {};
+
+  /*<jdists encoding="ejs" data="../package.json">*/
+  /**
+   * @file <%- name %>
+   *
+   * <%- description %>
+   * @author
+       <% (author instanceof Array ? author : [author]).forEach(function (item) { %>
+   *   <%- item.name %> (<%- item.url %>)
+       <% }); %>
+   * @version <%- version %>
+       <% var now = new Date() %>
+   * @date <%- [
+        now.getFullYear(),
+        now.getMonth() + 101,
+        now.getDate() + 100
+      ].join('-').replace(/-1/g, '-') %>
+   */
+  /*</jdists>*/
 
   /*<function name="jnodes_guid">*/
   var jnodes_guid = 0;
@@ -167,8 +190,6 @@
       jnodes_options['updateElement'](element, output.join(''));
     }
     else {
-      console.log(element);
-
       element.outerHTML = output.join('');
     }
   }
@@ -184,18 +205,15 @@
   function jnodes_data(element) {
     var bind;
     if (typeof element === 'string') {
-      bind = jnodes_binds[id];
+      bind = jnodes_binds[element];
       if (bind) {
         return bind.model;
       }
     } else {
       while (element) {
-        var id = element.getAttribute('bind');
-        if (id) {
-          bind = jnodes_binds[id];
-          if (bind) {
-            return bind.model;
-          }
+        var result = jnodes_data(element.getAttribute('bind'));
+        if (result) {
+            return result;
         }
         element = element.parentNode;
       }
@@ -239,5 +257,19 @@
     return jhtmls.render(jnodes_render_jhtmls(template), data);
   });
 
-  window[exportName] = exports;
+  /* istanbul ignore next */
+  if (typeof define === 'function') {
+    if (define.amd || define.cmd) {
+      define(function () {
+        return exports;
+      });
+    }
+  }
+  else if (typeof module !== 'undefined' && module.exports) {
+    module.exports = exports;
+  }
+  else {
+    window[exportName] = exports;
+  }
+
 })('jnodes');
