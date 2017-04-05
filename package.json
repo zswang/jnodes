@@ -2,10 +2,27 @@
   "name": "jnodes",
   "version": "0.0.1",
   "private": true,
+  "main": "jnodes.js",
   "scripts": {
-    "dist": "gulp dist",
-    "debug": "gulp"
+    "_update_version": "node version.js",
+    "dist": "npm run _update_version && gulp build example",
+    "lint": "jshint src/*.js",
+    "example": "gulp example",
+    "debug": "gulp",
+    "mocha": "gulp example && npm run test",
+    "test": "istanbul cover --hook-run-in-context node_modules/mocha/bin/_mocha -- -R spec"
   },
+   "keywords": [
+    "template",
+    "ejs",
+    "mvvm",
+    "jhtmls"
+  ],
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/zswang/jnodes/issues"
+  },
+  "homepage": "https://github.com/zswang/jnodes",
   "author": {
     "name": "zswang",
     "url": "http://weibo.com/zswang"
@@ -16,13 +33,23 @@
     "ejs": "^2.5.5",
     "gulp": "^3.9.1",
     "gulp-connect": "^5.0.0",
+    "gulp-examplejs": "0.0.9",
     "gulp-jdists": "^2.0.0",
     "gulp-open": "^2.0.0",
     "gulp-rename": "^1.2.2",
     "gulp-replace": "^0.5.4",
     "gulp-uglify": "^2.1.0",
     "h5tap": "0.0.4",
+    "istanbul": "^0.4.5",
     "jhtmls": "^1.1.3",
-    "jsets": "^0.0.5"
-  }
+    "jsdom": "^9.12.0",
+    "jshint": "^2.9.4",
+    "mocha": "^3.2.0",
+    "should": "^11.2.1"
+  },
+  "files": [
+    "jnodes.js",
+    "jnodes.min.js",
+    "README.md"
+  ]
 }

@@ -76,7 +76,7 @@ bind('#c2123', root);
 
 h5tap('#c2123', 'button', function (element) {
   var data = jnodes.data(element);
-  root.hint = data.cmd;
+  root.hint = Date.now() + ': ' + data.cmd ;
 });
 </script>
 </html>

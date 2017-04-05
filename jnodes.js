@@ -1,5 +1,5 @@
-(function (exportName) {
-  var exports = exports || {};
+(function(exportName) {
+  var exports = {};
   /**
    * @file jnodes
    *
@@ -19,202 +19,60 @@
   var jnodes_models = [];
   /*</function>*/
   /*<function name="jnodes_options">*/
-  var jnodes_options = {};
-  /*</function>*/
-  /*<function name="camelCase">*/
-  /**
-   * 将目标字符串进行驼峰化处理
-   *
-   * @see https://github.com/BaiduFE/Tangram2/blob/master/src/baidu/string/toCamelCase.js
-   * @param {string} text 传入字符串
-   * @return {string} 驼峰化处理后的字符串
-   '''<example>'''
-   * @example camelCase():base
-    ```js
-    console.log(jsets.camelCase('do-ready'));
-    // > doReady
-    console.log(jsets.camelCase('on-status-change'));
-    // > onStatusChange
-    console.log(jsets.camelCase('on-statusChange'));
-    // > onStatusChange
-    ```
-    '''</example>'''
-   */
-  var camelCache = {}; // 缓存
-  function camelCase(text) {
-    if (!text || typeof text !== 'string') { // 非字符串直接返回
-      return text;
+  var replacementsCache = {};
+  var jnodes_options = {
+    bindAttributeName: 'bind',
+    findElement: function(id) {
+      return document.querySelector('[' + jnodes_options.bindAttributeName + '="' + id + '"]');
+    },
+    updateElement: function(element, html) {
+      element.outerHTML = html;
+    },
+    getReplacements: function() {
+      if (replacementsCache.attributeName !== jnodes_options.bindAttributeName) {
+        var prefix = '^([^\\S\\n]*)<([\\w-]+)((?:(?:\'[^\']*\'|"[^"]*"|[^\'"\\/>]+)*)\\s)(' + jnodes_options.bindAttributeName +
+          ')=("|\')([$\\w]+)(\\5(?:(?:\'[^\']*\'|"[^"]*"|[^\'"\\/>]+)*)';
+        replacementsCache.value = [
+          /**
+           * @preview 单个
+            ```html
+            <img bind="item" src="<%- item.src %>" />
+            ```
+           */
+          new RegExp(prefix + '\\/>[^\\S\\n]*)$', 'mg'),
+          /**
+           * @preview 单行
+            ```html
+            <span bind="items" title="length > 2"><%= length %></span>
+            ```
+           */
+          new RegExp(prefix + '>.*<\\/\\2>[^\\S\\n]*)', 'mg'),
+          /**
+           * @preview 多行
+            ```
+            <ul bind="items">
+              ...
+            </ul>
+            ```
+           */
+          new RegExp(prefix + '>[^\\S\\n]*$[^]*?^\\1<\\/\\2>[^\\S\\n]*)$', 'mg'),
+        ];
+        replacementsCache.attributeName = jnodes_options.bindAttributeName;
+      }
+      return replacementsCache.value;
     }
-    var result = camelCache[text];
-    if (result) {
-      return result;
-    }
-    if (text.indexOf('-') < 0 && text.indexOf('_') < 0) {
-      result = text;
-    }
-    else {
-      result = text.replace(/[-_]+([a-z])/ig, function (all, letter) {
-        return letter.toUpperCase();
-      });
-    }
-    camelCache[text] = result;
-    return result;
-  }
+  };
   /*</function>*/
-  /*<function name="createSetter" depend="camelCase">*/
-  /**
-   * 创建设置键值的方法
-   *
-   * @param {Object} target 目标对象
-   * @param {Function} setter 设置一个键值函数
-   *  setter -> function(name, value)
-   * @param {boolean} camel 键值是否需要驼峰化
-   '''<example>'''
-   * @example createSetter():base
-    ```js
-    var dict = {};
-    var food = {};
-    food.set = jsets.createSetter(food, function(name, value) {
-      dict[name] = value;
-    });
-    food.set('a', 1);
-    console.log(JSON.stringify(dict));
-    // > {"a":1}
-    food.set({
-      b: 2,
-      c: 3
-    });
-    console.log(JSON.stringify(dict));
-    // > {"a":1,"b":2,"c":3}
-    ```
-    '''</example>'''
-   */
-  function createSetter(target, setter, camel) {
-    return function (name, value) {
-      if (typeof name === 'string' || typeof name === 'number') {
-        setter(camel ? camelCase(name) : name, value);
-      }
-      else if (typeof name === 'object') {
-        if (name instanceof Array) {
-          name.forEach(function (n, i) {
-            setter(i, n);
-          });
-        }
-        else {
-          for (var key in name) {
-            setter(camel ? camelCase(key) : key, name[key]);
-          }
-        }
-      }
-      return target;
-    };
-  }
-  /*</function>*/
-  /*<function name="createGetter" depend="camelCase">*/
-  /**
-   * 创建读取键值的方法
-   *
-   * @param {Object} target 目标对象
-   * @param {Function} getter 读取一个键值函数
-   *  getter -> function(name, fn)
-   '''<example>'''
-   * @example createGetter():base
-    ```js
-    var dict = { a: 1, b: 2, c: 3 };
-    var food = {};
-    food.get = jsets.createGetter(food, function(name) {
-        return dict[name];
-    });
-    console.log(JSON.stringify(food.get('a')));
-    // > 1
-    food.get('a', function(a) {
-      console.log(JSON.stringify(a));
-      // > 1
-    });
-    food.get(function(c, b, a) {
-      console.log(JSON.stringify([a, b, c]));
-      // > [1,2,3]
-    });
-    food.get(['a', 'b'], function(a, b) {
-        console.log(JSON.stringify(a));
-        // > 1
-        console.log(JSON.stringify(b));
-        // > 2
-    });
-    console.log(JSON.stringify(food.get(['a', 'b'])));
-    // > {"a":1,"b":2}
-    ```
-    '''</example>'''
-   */
-  function createGetter(target, getter, camel) {
-    var method = function (name, fn) {
-      var result;
-      var keys;
-      if (typeof name === 'function') {
-        keys = name['-jsets-params'];
-        if (!keys) { // 优先从缓存中获取
-          keys = [];
-          String(name).replace(/\(\s*([^()]+?)\s*\)/,
-            function (all, names) {
-              keys = names.split(/\s*,\s*/);
-            }
-          );
-          name['-jsets-params'] = keys;
-        }
-        return method(keys, name);
-      }
-      if (typeof name === 'string' || typeof name === 'number') {
-        name = camel ? camelCase(name) : name;
-        if (typeof fn === 'function') {
-          fn.call(target, getter(name));
-          return target;
-        }
-        return getter(name);
-      }
-      if (typeof name === 'object') {
-        if (name instanceof Array) {
-          if (typeof fn === 'function') {
-            result = [];
-            name.forEach(function (n) {
-              result.push(getter(camel ? camelCase(n) : n));
-            });
-            fn.apply(target, result);
-            return target;
-          }
-          result = {};
-          name.forEach(function (n) {
-            result[n] = getter(camel ? camelCase(n) : n);
-          });
-          return result;
-        }
-        var key;
-        if (typeof fn === 'function') {
-          result = [];
-          for (key in name) {
-            result.push(getter(camel ? camelCase(key) : key) || name[key]);
-          }
-          return target;
-        }
-        result = {};
-        for (key in name) {
-          result[key] = getter(camel ? camelCase(key) : key) || name[key];
-        }
-        return result;
-      }
-    };
-    return method;
-  }
-  /*</function>*/
-  /*<function name="jnodes_set" depend="createSetter,jnodes_options">*/
-  var jnodes_set = createSetter(jnodes_options, function (name, value) {
+  /*<function name="jnodes_set" depend="jnodes_options">*/
+  var jnodes_set = function(name, value) {
     jnodes_options[name] = value;
-  });
+  };
   /*</function>*/
   exports.set = jnodes_set;
-  /*<function name="jnodes_get" depend="createGetter,jnodes_options">*/
-  var jnodes_get = createGetter(jnodes_options, function (name) {
+  /*<function name="jnodes_get" depend="jnodes_options">*/
+  var jnodes_get = function(name) {
     return jnodes_options[name];
-  });
+  };
   /*</function>*/
   exports.get = jnodes_get;
   /*<function name="jnodes_bind" depend="jnodes_guid,jnodes_binds,jnodes_observer">*/
@@ -225,14 +83,118 @@
    * @param {Function} render 渲染函数
    * @param {Boolean=} root 是否根节点，默认: false
    * @return {Object} 返回绑定后的结果
+   * @example bind():model
+    ```js
+    var model = { a: 1, b: 2 };
+    var render = function () {};
+    var scope = jnodes.bind(model, render);
+    console.log(scope.model === model);
+    // > true
+    ```
+   * @example bind():render
+    ```js
+    var model = { a: 1, b: 2 };
+    var render = function (_model) {
+      console.log(_model === model);
+    };
+    var scope = jnodes.bind(model, render);
+    scope.render();
+    // > true
+    ```
+   * @example bind():root
+    ```js
+    var model = { a: 1, b: 2 };
+    var render = function (_model) { };
+    var scope = jnodes.bind(model, render, true);
+    console.log(scope.root);
+    // > true
+    ```
+   * @example bind():object trigger
+    ```js
+    var model = { a: 1, b: 2 };
+    var render = function (_model) {
+      console.log(_model.a);
+    };
+    var scope = jnodes.bind(model, render, true);
+    model.a = 3;
+    // > 3
+    var render2 = function (_model) {
+      console.log(model.b);
+    }
+    var scope = jnodes.bind(model, render2, true);
+    model.b = 4;
+    // > 3
+    // > 4
+    model.b = 4;
+    model.b = 5;
+    // > 3
+    // > 5
+    ```
+   * @example bind():array trigger
+    ```js
+    var model = [1, 2, 3, 4];
+    var count = 0;
+    var render = function (_model) {
+      count++;
+    };
+    var scope = jnodes.bind(model, render, true);
+    model.push(1);
+    console.log(count);
+    // > 1
+    model.pop();
+    console.log(count);
+    // > 2
+    model.shift();
+    console.log(count);
+    // > 3
+    model.shift();
+    console.log(count);
+    // > 4
+    model.unshift(9);
+    console.log(count);
+    // > 5
+    model.splice(0, 1);
+    console.log(count);
+    // > 6
+    model.sort();
+    console.log(count);
+    // > 7
+    model.reverse();
+    console.log(count);
+    // > 8
+    ```
+   * @example bind():dom
+    ```html
+    <ul></ul>
+    ```
+    ```js
+    var model = [1, 2, 3, 4];
+    var count = 0;
+    var render = function (_model, _output, _scope) {
+      _output.push('<ul bind="' + _scope.id + '" class="box">');
+      _model.forEach(function (item) {
+        _output.push('<li>' + item + '</li>');
+      });
+      _output.push('</ul>');
+    };
+    var scope = jnodes.bind(model, render);
+    var ul = document.querySelector('ul');
+    ul.setAttribute('bind', scope.id);
+    model.push(5);
+    var ul = document.querySelector('ul');
+    console.log(ul.innerHTML);
+    // > <li>1</li><li>2</li><li>3</li><li>4</li><li>5</li>
+    console.log(ul.className);
+    // > box
+    ```
    */
   function jnodes_bind(model, render, root) {
     var $scope = {
       id: jnodes_guid++,
       model: model,
       root: root,
-      render: function (_output_) {
-        return render(model, _output_, $scope)
+      render: function(_output_) {
+        return render(model, _output_, $scope);
       }
     };
     jnodes_binds[$scope.id] = $scope;
@@ -246,12 +208,40 @@
    * 监听对象的改变
    *
    * @param {Object} model 对象
+   * @example observer():configurable is false
+    ```js
+    var data = { a: 1 };
+    Object.defineProperty(data, 'a', {
+      enumerable: true,
+      configurable: false,
+    });
+    jnodes.observer(data);
+    ```
+   * @example observer():getter/setter
+    ```js
+    var data = { a: 1 };
+    var _x = 0;
+    Object.defineProperty(data, 'x', {
+      enumerable: true,
+      configurable: true,
+      get: function () {
+        return _x;
+      },
+      set: function (value) {
+        _x = value;
+      }
+    });
+    jnodes.observer(data);
+    data.x = 123;
+    console.log(data.x);
+    // > 123
+    ```
    */
   function jnodes_observer(model) {
     function define(key, value) {
       var property = Object.getOwnPropertyDescriptor(model, key);
       if (property && property.configurable === false) {
-        return
+        return;
       }
       // cater for pre-defined getter/setters
       var getter = property && property.get;
@@ -259,24 +249,24 @@
       Object.defineProperty(model, key, {
         enumerable: true,
         configurable: true,
-        get: function () {
+        get: function() {
           return getter ? getter.call(model) : value;
         },
-        set: function (newVal) {
+        set: function(newVal) {
           var val = getter ? getter.call(model) : value;
           if (newVal === val) {
             return;
           }
           if (setter) {
-            setter.call(model, newVal)
-          }
-          else {
-            value = newVal
+            setter.call(model, newVal);
+          } else {
+            value = newVal;
           }
           jnodes_trigger(model);
         }
       });
     }
+    // 该数据已经绑定
     if (jnodes_models.indexOf(model) >= 0) {
       return;
     }
@@ -291,23 +281,22 @@
         'sort',
         'reverse',
       ]
-      .forEach(function (method) {
+      .forEach(function(method) {
         // cache original method
         var original = model[method];
         Object.defineProperty(model, method, {
-          value: function () {
+          value: function() {
             var result = original.apply(this, arguments);
             jnodes_trigger(model);
-            return result
+            return result;
           },
           enumerable: false,
           writable: true,
           configurable: true,
         });
       });
-    }
-    else {
-      Object.keys(model).forEach(function (key) {
+    } else {
+      Object.keys(model).forEach(function(key) {
         define(key, model[key]);
       });
     }
@@ -318,13 +307,57 @@
    * 更新 DOM
    *
    * @param {string} id 元素 ID
+   * @example update():base
+    ```html
+    <ul></ul>
+    ```
+    ```js
+    var model = [1, 2];
+    var count = 0;
+    var render = function (_model, _output, _scope) {
+      _output.push('<ul></ul>');
+      count++;
+    };
+    var scope = jnodes.bind(model, render);
+    var ul = document.querySelector('ul');
+    ul.setAttribute('bind', scope.id);
+    model.push(3);
+    console.log(count);
+    // > 1
+    model.push(4);
+    console.log(count);
+    // > 1
+    jnodes.update('none');
+    ```
+   * @example update():base
+    ```html
+    <ul></ul>
+    ```
+    ```js
+    var model = [1, 2];
+    var count = 0;
+    var render = function (_model, _output, _scope) {
+      count++;
+      _output.push('<ul></ul>')
+      return true;
+    };
+    var scope = jnodes.bind(model, render);
+    var ul = document.querySelector('ul');
+    ul.setAttribute('bind', scope.id);
+    model.push(3);
+    console.log(count);
+    // > 1
+    model.push(4);
+    console.log(count);
+    // > 2
+    ```
    */
   function jnodes_update(id) {
     var bind = jnodes_binds[id];
     if (!bind) {
       return;
     }
-    var element = document.querySelector('[bind="' + id + '"]');
+    var element = jnodes_options.findElement(id);
     if (!element) {
       delete jnodes_binds[id];
       return;
@@ -334,20 +367,36 @@
     if (bind.render(output) === true) {
       return;
     }
-    if (jnodes_options['updateElement']) {
-      jnodes_options['updateElement'](element, output.join(''));
-    }
-    else {
-      element.outerHTML = output.join('');
-    }
+    jnodes_options.updateElement(element, output.join(''));
   }
   /*</function>*/
-  exports.update = jnodes_update;
   /*<function name="jnodes_data" depend="jnodes_binds">*/
   /**
    * 查询元素绑定的数据
    *
    * @param {string|element} element 元素或者是 ID
+   * @example data():base
+    ```html
+    <ul>
+      <li><button>click</button></li>
+    </ul>
+    ```
+    ```js
+    var model = { a: 1, b: 2 };
+    var render = function (_model, _output, _scope) {
+      _output.push('<li bind="' + _scope.id + '"><button>click</button></li>');
+    };
+    var scope = jnodes.bind(model, render);
+    var li = document.querySelector('li');
+    li.setAttribute('bind', scope.id);
+    var button = document.querySelector('li button');
+    var data = jnodes.data(button);
+    console.log(data.a);
+    // > 1
+    var data2 = jnodes.data('none');
+    console.log(data2);
+    // > undefined
+    ```
    */
   function jnodes_data(element) {
     var bind;
@@ -360,7 +409,7 @@
       while (element) {
         var result = jnodes_data(element.getAttribute('bind'));
         if (result) {
-            return result;
+          return result;
         }
         element = element.parentNode;
       }
@@ -375,7 +424,7 @@
    * @param {Object} model 目标
    */
   function jnodes_trigger(model) {
-    Object.keys(jnodes_binds).forEach(function (id) {
+    Object.keys(jnodes_binds).forEach(function(id) {
       var bind = jnodes_binds[id];
       if (bind && bind.model === model) {
         if (bind.root) {
@@ -389,33 +438,21 @@
   /*</function>*/
   exports.trigger = jnodes_trigger;
   /*<function name="jnodes_render_ejs">*/
-function jnodes_render_ejs(code) {
-  /*
+function jnodes_render_ejs(code, replacements) {
+  /**
+   * @preview
+    ```html
     <% jnodes.bind(item, function(item, __output, _scope_) { var __append = __output.push.bind(__output); %>
     <li bind="<%= _scope_.id %>" style="<%- /\d/.test(item.title) ? 'color: red;' : '' %>">1---<%= item.title %></li>
     <% }).render(__output); %>
-  */
+    ```
+   */
   if (code) {
-    [
-      /*
-      <img bind="item" src="#{item.src}" />
-      */
-      /^([^\S\n]*)<([\w-]+)((?:(?:'[^']*'|"[^"]*"|[^'"\/>]+)*)\s)bind=("|')([$\w]+)(\4(?:(?:'[^']*'|"[^"]*"|[^'"\/>]+)*)\/>[^\S\n]*)$/mg,
-      /*
-      <span bind="items" title="length > 2" >#{length}</span>
-      */
-      /^([^\S\n]*)<([\w-]+)((?:(?:'[^']*'|"[^"]*"|[^'"\/>]+)*)\s)bind=("|')([$\w]+)(\4(?:(?:'[^']*'|"[^"]*"|[^'"\/>]+)*)>.*<\/\2>[^\S\n]*)$/mg,
-      /*
-        <ul bind="items">
-           ...
-        </ul>
-         */
-      /^([^\S\n]*)<([\w-]+)((?:(?:'[^']*'|"[^"]*"|[^'"\/>]+)*)\s)bind=("|')([$\w]+)(\4(?:(?:'[^']*'|"[^"]*"|[^'"\/>]+)*)>[^\S\n]*$[^]*?^\1<\/\2>[^\S\n]*)$/mg,
-    ].forEach(function(regex) {
-      code = String(code).replace(regex, function(all, space, tag, attrs, quot, bindName, end) {
+    replacements.forEach(function(regex) {
+      code = String(code).replace(regex, function(all, space, tag, attrs, bindAttr, quot, bindName, end) {
         var result = '\n';
         result += [space, '<% jnodes.bind(', bindName, ', function(', bindName, ', __output, _scope_) { var __append = __output.push.bind(__output); %>', '\n'].join('');
-        result += [space, '<', tag, attrs, 'bind', '=', quot, '<%= _scope_.id %>', end, '\n'].join('');
+        result += [space, '<', tag, attrs, bindAttr, '=', quot, '<%= _scope_.id %>', end, '\n'].join('');
         result += [space, '<% }).render(__output); %>', '\n'].join('');
         return result;
       });
@@ -424,37 +461,37 @@ function jnodes_render_ejs(code) {
   return code;
 }
 /*</function>*/
-  jnodes_set('ejs', function (template, data) {
-    return ejs.render(jnodes_render_ejs(template), data);
+  /**
+   * @example ejs
+    ```js
+    var render = jnodes.get('ejs');
+    var text = render('<div bind="movie"><%= movie.title %> -- <%= movie.time %></div>', { movie: { title: 'Logan', time: '2017'} });
+    console.log(text.replace(/"\d+"/g, '"x"').trim());
+    // > <div bind="x">Logan -- 2017</div>
+    var text = render('<div bind="movie"><%= movie.title %> -- <%= movie.time %></div>', { movie: { title: 'Hacksaw Ridge', time: '2016'} });
+    console.log(text.replace(/"\d+"/g, '"x"').trim());
+    // > <div bind="x">Hacksaw Ridge -- 2016</div>
+    ```
+   */
+  jnodes_set('ejs', function(template, data) {
+    return ejs.render(jnodes_render_ejs(template, jnodes_options.getReplacements()), data);
   });
   /*<function name="jnodes_render_jhtmls">*/
-function jnodes_render_jhtmls(code) {
-  /*
-      jnodes.bind(item, function(item, _output_, _scope_) {
+function jnodes_render_jhtmls(code, replacements) {
+  /**
+   * @preview
+    ```js
+    jnodes.bind(item, function(item, _output_, _scope_) {
       <li bind="#{_scope_.id}" style="!#{/\d/.test(item.title) ? 'color: red;' : ''}">1---#{item.title}</li>
-      }).render(_output_);
-  */
+    }).render(_output_);
+    ```
+   */
   if (code) {
-    [
-      /*
-      <img bind="item" src="#{item.src}" />
-      */
-      /^([^\S\n]*)<([\w-]+)((?:(?:'[^']*'|"[^"]*"|[^'"\/>]+)*)\s)bind=("|')([$\w]+)(\4(?:(?:'[^']*'|"[^"]*"|[^'"\/>]+)*)\/>[^\S\n]*)$/mg,
-      /*
-      <span bind="items" title="length > 2" >#{length}</span>
-      */
-      /^([^\S\n]*)<([\w-]+)((?:(?:'[^']*'|"[^"]*"|[^'"\/>]+)*)\s)bind=("|')([$\w]+)(\4(?:(?:'[^']*'|"[^"]*"|[^'"\/>]+)*)>.*<\/\2>[^\S\n]*)$/mg,
-      /*
-        <ul bind="items">
-           ...
-        </ul>
-         */
-      /^([^\S\n]*)<([\w-]+)((?:(?:'[^']*'|"[^"]*"|[^'"\/>]+)*)\s)bind=("|')([$\w]+)(\4(?:(?:'[^']*'|"[^"]*"|[^'"\/>]+)*)>[^\S\n]*$[^]*?^\1<\/\2>[^\S\n]*)$/mg,
-    ].forEach(function(regex) {
-      code = String(code).replace(regex, function(all, space, tag, attrs, quot, bindName, end) {
+    replacements.forEach(function(regex) {
+      code = String(code).replace(regex, function(all, space, tag, attrs, bindAttr, quot, bindName, end) {
         var result = '\n';
         result += [space, 'jnodes.bind(', bindName, ', function(', bindName, ', _output_, _scope_) {', '\n'].join('');
-        result += [space, '<', tag, attrs, 'bind=', quot, '#{_scope_.id}', end, '\n'].join('');
+        result += [space, '<', tag, attrs, bindAttr, '=', quot, '#{_scope_.id}', end, '\n'].join('');
         result += [space, '}).render(_output_);', '\n'].join('');
         return result;
       });
@@ -463,21 +500,28 @@ function jnodes_render_jhtmls(code) {
   return code;
 }
 /*</function>*/
-  jnodes_set('jhtmls', function (template, data) {
-    return jhtmls.render(jnodes_render_jhtmls(template), data);
+  /**
+   * @example jhtmls
+    ```js
+    var render = jnodes.get('jhtmls');
+    var text = render('<div bind="movie">#{movie.title} -- #{movie.time}</div>', { movie: { title: 'Logan', time: '2017'} });
+    console.log(text.replace(/"\d+"/g, '"x"').trim());
+    // > <div bind="x">Logan -- 2017</div>
+    ```
+   */
+  jnodes_set('jhtmls', function(template, data) {
+    return jhtmls.render(jnodes_render_jhtmls(template, jnodes_options.getReplacements()), data);
   });
   /* istanbul ignore next */
   if (typeof define === 'function') {
     if (define.amd || define.cmd) {
-      define(function () {
+      define(function() {
         return exports;
       });
     }
-  }
-  else if (typeof module !== 'undefined' && module.exports) {
+  } else if (typeof module !== 'undefined' && module.exports) {
     module.exports = exports;
-  }
-  else {
+  } else {
     window[exportName] = exports;
   }
 })('jnodes');

@@ -10,8 +10,23 @@ const uglify = require('gulp-uglify')
 const rename = require("gulp-rename")
 const replace = require('gulp-replace')
 const open = require('gulp-open')
+const examplejs = require('gulp-examplejs')
 
 const port = 20174;
+
+gulp.task('example', function() {
+  return gulp.src([
+      'src/*.js'
+    ])
+    .pipe(examplejs({
+      header: `
+global.jnodes = require('../src/jnodes.js');
+global.ejs = require('ejs');
+global.jhtmls = require('jhtmls');
+      `
+    }))
+    .pipe(gulp.dest('test'))
+})
 
 gulp.task('open', function() {
   gulp
