@@ -13,7 +13,8 @@ Front end template data binding.
 ```js
 var data = { a: 1, b: 2};
 
-jnodes.bind(data, function (data, output) {
+var binder = new jnodes.Binder();
+binder.bind(data, function (data, output) {
 	output.push(ejs.render(data));
 });
 ```

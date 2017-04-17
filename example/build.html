@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title></title>
+  <meta charset="utf8">
+  <style>
+    .star {
+      background: gray;
+    }
+    textarea {
+      width: 600px;
+      height: 800px;
+    }
+  </style>
+</head>
+<body>
+    <!--<textarea></textarea>-->
+    <div id="books_jhtml">
+      <script type="text/jhtmls">
+      <div>
+        <button cmd="remove">remove</button>
+        <button cmd="sort">sort</button>
+        function _sort() {
+          books.$$asc = -(books.$$asc || 1);
+          books.sort(function (a, b) {
+            return a.title.localeCompare(b.title) * books.$$asc;
+          });
+        }
+        <button :cmd="_sort">_sort</button>
+      </div>
+      <ul :bind="books">
+      books.forEach(function (book) {
+        <li :bind="book" class="book" :class="{ star: book.star }">
+          #{book.title}
+          if (book.star) {
+          <button cmd="star">🌟</button>
+          } else {
+          <button cmd="star">🌛</button>
+          }
+        </li>
+      });
+      </ul>
+      </script>
+    </div>
+    <ul id="books_ejs">
+      <script type="text/ejs">
+      <li><button cmd="remove">remove</button></li>
+      <% forEach(function (book) { %>
+        <li :bind="book" class="book" :class="{ star: book.star }">
+          <%= book.title %>
+      <%    if (book.star) { %>
+          <button cmd="star">🌟</button>
+      <%    } else { %>
+          <button cmd="star">🌛</button>
+      <%    } %>
+        </li>
+      <% }); %>
+      </script>
+    </ul>
+</body>
+<script src="../node_modules/jhtmls/jhtmls.js"></script>
+<script src="../node_modules/ejs/ejs.js"></script>
+<script src="../node_modules/h5tap/h5tap.js"></script>
+<script src="../jnodes.js"></script>
+<script src="books.js"></script>
+<script>
+(function () {
+  var rootData = {
+    books: books.slice(0, 10).map(function(book) {
+      book.star = false;
+      return book;
+    })
+  }
+
+  var binder = new jnodes.Binder();
+
+  jnodes.bind = function () {
+    return binder.bind.apply(binder, arguments);
+  };
+
+  var element = document.querySelector('#books_jhtml');
+  var script = document.querySelector('#books_jhtml script');
+
+  // var compiler = new jnodes.Compiler();
+  var root = jnodes.Parser.parse(script.innerHTML);
+  var textarea = document.querySelector('textarea')
+  var template = jnodes.Parser.build(root, 'jnodes.bind', function (node, bindFunctionName) {
+    var indent = node.indent || ''
+    if (node.type === 'root') {
+      node.beforebegin = `${indent}/***/ var _rootScope_ = ${bindFunctionName}(this, { root: true }, null, function (_output_, _scope_) {`;
+      node.afterend = `\n${indent}/***/ }); _rootScope_.innerRender(_output_); ${bindFunctionName}.$$scope = _rootScope_;`
+      return;
+    }
+
+    if (!node.tag) {
+      return;
+    }
+
+    if (!node.attrs || !node.attrs.length) {
+      return;
+    }
+    var varintAttrs = `${indent}/***/ var _attrs_ = [\n`;
+    var hasOverwriteAttr;
+    var bindDataValue;
+    node.attrs.forEach(function (attr) {
+      var value;
+      if (attr.name[0] === ':') {
+        if (attr.name === ':bind') {
+          bindDataValue = attr.value;
+        }
+        hasOverwriteAttr = true;
+        value = attr.value;
+      } else {
+        value = JSON.stringify(attr.value);
+      }
+      varintAttrs += `${indent}/***/ { name: ${JSON.stringify(attr.name)}, value: ${value}, quoted: ${JSON.stringify(attr.quoted)}},\n`;
+    })
+    if (!hasOverwriteAttr) {
+      return;
+    }
+
+    node.beforebegin = '';
+    if (bindDataValue) {
+      node.beforebegin += `\n${indent}/***/ ${bindFunctionName}(${bindDataValue}, _scope_, function (_output_, _scope_, holdInner) {\n`;
+      node.beforeend = `\n${indent}/***/ _scope_.innerRender = function(_output_) {\n`;
+      node.afterbegin = `\n${indent}/***/ }; if (holdInner) { _scope_.innerRender(_output_); }\n`
+      node.afterend = `\n${indent}/***/ }).outerRender(_output_, true);\n`
+    }
+
+    varintAttrs += `${indent}/***/ ];\n`;
+    node.beforebegin += varintAttrs;
+    node.overwriteAttrs = '!#{_scope_.attrsRender(_scope_, _attrs_)}';
+  });
+
+  // textarea.value = template;
+
+  element.innerHTML = jhtmls.render(template, rootData);
+  jnodes.bind.$$scope.element = element;
+
+  h5tap(element, 'button', function (element) {
+    var scope = binder.scope(element);
+    if (!scope) {
+      return;
+    }
+    var cmd = element.getAttribute('cmd');
+    switch (cmd) {
+      case 'star':
+        scope.model.star = !scope.model.star;
+
+        break;
+      case 'remove':
+        scope.model.books.shift();
+        break;
+      case 'sort':
+        scope.model.books.$$asc = -(scope.model.books.$$asc || 1);
+        scope.model.books.sort(function (a, b) {
+          return a.title.localeCompare(b.title) * (scope.model.books.$$asc);
+        })
+        break;
+      default:
+        if (cmd[0] === '@') {
+          var method = (scope.methods || {})[cmd]
+          if (method) {
+            method()
+          }
+        }
+        break;
+    }
+  });
+})();
+</script>
+</html>

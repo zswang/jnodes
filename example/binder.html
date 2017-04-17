@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title></title>
+  <meta charset="utf8">
+  <style>
+    .star {
+      background: gray;
+    }
+  </style>
+</head>
+<body>
+    <ul id="books_jhtml">
+      <!--script type="text/jhtmls">
+      <li>
+        <button cmd="remove">remove</button>
+        function _sort() {
+          _sort.asc = -(_sort.asc || 1);
+          sort(function (a, b) {
+            return a.title.localeCompare(b.title) * _sort.asc;
+          });
+        }
+        <button :cmd="_sort">sort</button>
+      </li>
+      forEach(function (book) {
+        <li :bind="book" class="book" :class="{ star: book.star }">
+          #{book.title}
+          if (book.star) {
+          <button cmd="star">🌟</button>
+          } else {
+          <button cmd="star">🌛</button>
+          }
+        </li>
+      });
+      </script-->
+      <script type="text/jhtmls">
+/***/ var _rootScope_ = jnodes.bind(this, { root: true }, null, function (_output_, _scope_) {
+      <li>
+        <button cmd="remove">remove</button>
+        function _sort() {
+          _scope_.asc = -(_scope_.asc || 1);
+          sort(function (a, b) {
+            return a.title.localeCompare(b.title) * _scope_.asc;
+          });
+        }
+/***/   var _attrs_ = [{
+/***/     'name': ':cmd',
+/***/     'value': _sort,
+/***/   }];
+        <button !#{_scope_.attrsRender(_scope_, _attrs_)}>sort</button>
+      </li>
+      forEach(function (book) {
+/***/   jnodes.bind(book, _scope_, function (_output_, _scope_, holdInner) {
+/***/     var _attrs_ = [
+/***/       { name: ":bind", value: book, quoted: '"'},
+/***/       { name: "class", value: "book", quoted: '"'},
+/***/       { name: ":class", value: { star: book.star }, quoted: '"' },
+/***/     ];
+        <li !#{_scope_.attrsRender(_scope_, _attrs_)}>
+/***/     _scope_.innerRender = function(_output_) {
+          #{book.title}
+          if (book.star) {
+          <button cmd="star">🌟</button>
+          } else {
+          <button cmd="star">🌛</button>
+          }
+/***/     }; if (holdInner) { _scope_.innerRender(_output_); }
+        </li>
+/***/   }).outerRender(_output_, true);
+      });
+
+/***/ }); _rootScope_.innerRender(_output_); jnodes.bind.$$scope = _rootScope_;
+      </script>
+    </ul>
+    <ul id="books_ejs">
+      <!--script type="text/ejs">
+      <li>
+        <button cmd="remove">remove</button>
+        <%
+        function _sort() {
+          _scope_.asc = -(_scope_.asc || 1);
+          sort(function (a, b) {
+            return a.title.localeCompare(b.title) * _scope_.asc;
+          });
+        }
+        %>
+        <button :cmd="_sort">sort</button>
+      </li>
+      </li>
+      <% forEach(function (book) { %>
+        <li :bind="book" class="book" :class="{ star: book.star }">
+          <%= book.title %>
+      <%    if (book.star) { %>
+          <button cmd="star">🌟</button>
+      <%    } else { %>
+          <button cmd="star">🌛</button>
+      <%    } %>
+        </li>
+      <% }); %>
+      </script-->
+      <script type="text/ejs">
+      <%
+/***/ var _rootScope_ = jnodes.bind(locals, { root: true }, null, function (__output, _scope_) {
+/***/   var __append = __output.push.bind(__output);
+      %>
+
+      <li>
+        <button cmd="remove">remove</button>
+        <%
+        function _sort() {
+          _scope_.asc = -(_scope_.asc || 1);
+          sort(function (a, b) {
+            return a.title.localeCompare(b.title) * _scope_.asc;
+          });
+        }
+        %>
+        <%
+/***/   var attrs = [{
+/***/     'name': ':cmd',
+/***/     'value': _sort,
+/***/   }];
+        %>
+        <button <%- _scope_.attrsRender(_scope_, attrs) %>>sort</button>
+      </li>
+      <% forEach(function (book) { %>
+      <%
+/***/    jnodes.bind(book, _scope_, function (__output, _scope_, holdInner) {
+/***/      var __append = __output.push.bind(__output);
+/***/      var attrs = [
+/***/        { name: ":bind", value: book, quoted: '"'},
+/***/        { name: "class", value: "book", quoted: '"'},
+/***/        { name: ":class", value: { star: book.star }, quoted: '"' },
+/***/      ];
+      %>
+        <li <%- _scope_.attrsRender(_scope_, attrs) %>>
+      <%
+/***/      (_scope_.innerRender = function(__output) {
+/***/        var __append = __output.push.bind(__output);
+      %>
+             <%= book.title %>
+      <%     if (book.star) { %>
+          <button cmd="star">🌟</button>
+      <%     } else { %>
+          <button cmd="star">🌛</button>
+      <%     } %>
+      <%
+/***/      })(__output);
+      %>
+        </li>
+      <%
+/***/ }).outerRender(__output, true);
+      %>
+      <% }); %>
+      <%
+/***/ });
+/***/ _rootScope_.innerRender(__output);
+/***/ jnodes.bind.$$scope = _rootScope_;
+      %>
+      </script>
+    </ul>
+</body>
+<script src="../node_modules/jhtmls/jhtmls.js"></script>
+<script src="../node_modules/ejs/ejs.js"></script>
+<script src="../node_modules/h5tap/h5tap.js"></script>
+<script src="../jnodes.js"></script>
+<script src="books.js"></script>
+<script>
+(function () {
+  books = books.slice(0, 10).map(function(book) {
+    book.star = false;
+    return book;
+  });
+
+  var binder = new jnodes.Binder();
+
+  jnodes.bind = function () {
+    return binder.bind.apply(binder, arguments);
+  };
+
+  function bind(selector, data) {
+    var element = document.querySelector(selector);
+    var script = element.querySelector('script');
+
+    var match = script.getAttribute('type').match(/text\/([\w-]+)/);
+    if (!match) {
+      return;
+    }
+
+    switch (match[1]) {
+      case 'jhtmls':
+        element.innerHTML = jhtmls.render(script.innerHTML, books);
+        break;
+      case 'ejs':
+        element.innerHTML = ejs.render(script.innerHTML, books);
+        break;
+      default:
+        return;
+    }
+    var rootScope = jnodes.bind.$$scope;
+    rootScope.element = element;
+
+    h5tap(element, 'button', function (element) {
+      var scope = binder.scope(element) || rootScope;
+      var cmd = element.getAttribute('cmd');
+      switch (cmd) {
+        case 'star':
+          scope.model.star = !scope.model.star;
+
+          break;
+        case 'remove':
+
+          books.shift();
+          break;
+        case 'sort':
+          if (!books.asc) {
+            books.asc = 1;
+          }
+          books.asc = -books.asc;
+          books.sort(function (a, b) {
+            return a.title.localeCompare(b.title) * (books.asc);
+          })
+          break;
+        default:
+          if (cmd[0] === '@') {
+            var method = (scope.methods || {})[cmd]
+            if (method) {
+              method()
+            }
+          }
+          break;
+      }
+    });
+  }
+
+  bind('#books_jhtml', books);
+  bind('#books_ejs', books);
+})();
+</script>
+</html>
