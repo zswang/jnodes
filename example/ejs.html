@@ -38,6 +38,7 @@
           <% } else { %>
           <button cmd="star">🌛</button>
           <% } %>
+          <button @cmd="show(book.title)">show()</button>
         </li>
       <% }); %>
       </ul>
@@ -96,6 +97,9 @@
         }
         hasOverwriteAttr = true;
         value = attr.value;
+      } else if (attr.name[0] === '@') {
+        hasOverwriteAttr = true;
+        value = `function () { with(_rootScope_.functionScope || {}) { ${attr.value} }}`;
       } else {
         value = JSON.stringify(attr.value);
       }
@@ -121,6 +125,11 @@
   element.innerHTML = ejs.render(template, rootData);
 
   jnodes.bind.$$scope.element = element;
+  jnodes.bind.$$scope.functionScope = {
+    show: function(text) {
+      console.log(text);
+    }
+  }
 
   h5tap(element, 'button', function (element) {
     var scope = binder.scope(element);

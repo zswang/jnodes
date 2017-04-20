@@ -58,7 +58,7 @@ function parser_tokenizer(code) {
         // find attrs
         while (true) {
             // find attrName
-            match = code.slice(scanpos + offset).match(/^\s*(:?[\w_]+[\w_-]*[\w_]|[\w_]+)\s*/);
+            match = code.slice(scanpos + offset).match(/^\s*([:@]?[\w_]+[\w_-]*[\w_]|[\w_]+)\s*/);
             if (!match) {
                 break;
             }

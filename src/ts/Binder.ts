@@ -69,6 +69,7 @@ interface Scope {
    * 子作用域集合
    */
   children?: Scope[]
+
   /**
    * 内层渲染函数
    */
@@ -102,6 +103,10 @@ interface Scope {
    */
   bindAttributeName: string
   /**
+   * 事件字段前缀
+   */
+  eventAttributePrefix?: string
+  /**
    * 绑定数据对象名
    */
   bindObjectName: string
@@ -131,6 +136,14 @@ interface TemplateRenderBindFunction {
   (templateName: string, scope: Scope): string
 }
 
+interface ScopeCreateFunction {
+  (scope: Scope)
+}
+interface ScopeDestroyFunction {
+  (scope: Scope)
+}
+
+
 interface BinderOptions {
   findElement?: FindElementFunction
   updateElement?: UpdateElementFunction
@@ -138,6 +151,9 @@ interface BinderOptions {
   bindAttributeName?: string
   scopeAttributeName?: string
   bindObjectName?: string
+  eventAttributePrefix?: string
+  onScopeCreate?: ScopeCreateFunction
+  onScopeDestroy?: ScopeDestroyFunction
 }
 
 /*<function name="Binder" depend="observer">*/
@@ -146,12 +162,16 @@ class Binder {
   _binds: object
   _bindAttributeName: string
   _scopeAttributeName: string
+  _eventAttributePrefix: string
   _bindObjectName: string
   _findElement: FindElementFunction
   _updateElement: UpdateElementFunction
   _attrsRender: AttrsRenderFunction
   _templates: { [key: string]: TemplateRenderFunction }
   _compiler: { [key: string]: TemplateCompilerFunction }
+  _onScopeCreate: ScopeCreateFunction
+  _onScopeDestroy: ScopeDestroyFunction
+  _newScopes: Scope[]
 
   constructor(options?: BinderOptions) {
     options = options || {}
@@ -161,16 +181,22 @@ class Binder {
     this._bindAttributeName = options.bindAttributeName || 'bind'
     this._scopeAttributeName = options.scopeAttributeName || 'data-jnodes-scope'
     this._bindObjectName = options.bindObjectName || 'jnodes'
+    this._eventAttributePrefix = options.eventAttributePrefix || 'data-jnodes-event-'
+    this._onScopeCreate = options.onScopeCreate;
+    this._onScopeDestroy = options.onScopeDestroy;
+
     this._templates = {}
     this._compiler = {}
+    this._newScopes = []
 
-    this._findElement = options.findElement || function (scope: Scope): Element {
+    this._findElement = options.findElement || ((scope: Scope): Element => {
       return document.querySelector(`[${scope.scopeAttributeName}="${scope.id}"]`)
-    }
-    this._updateElement = options.updateElement || function (element: Element, scope: Scope) {
+    })
+    this._updateElement = options.updateElement || ((element: Element, scope: Scope) => {
       if (!element || (!scope.outerRender && !scope.innerRender)) {
         return
       }
+      this.cleanChildren(scope)
       let output = []
       if (!scope.innerRender) { // 没有内部渲染函数
         scope.outerRender(output, true)
@@ -191,23 +217,31 @@ class Binder {
           element.outerHTML = output.join('')
         }
       }
-      /* TODO : 触发 update 事件 */
-    }
-    this._attrsRender = options.attrsRender || function (scope: Scope, attrs: Attr[]): string {
+      if (this._onScopeCreate) {
+        this._newScopes.forEach((scope) => {
+          this._onScopeCreate(scope)
+        })
+      }
+      this._newScopes = []
+    })
+    this._attrsRender = options.attrsRender || ((scope: Scope, attrs: Attr[]): string => {
       if (!attrs) {
         return ''
       }
       let dictValues = {}
       let dictQuoteds = {}
       attrs.filter((attr) => {
-        if (':' !== attr.name[0]) {
+        if (':' !== attr.name[0] && '@' !== attr.name[0]) {
           return true
         }
+
         let name = attr.name.slice(1)
         let values = []
         if (name === scope.bindAttributeName) {
           name = scope.scopeAttributeName
           values.push(scope.id)
+        } else if (scope.eventAttributePrefix && '@' === attr.name[0]) {
+          name = scope.eventAttributePrefix + name;
         }
         dictValues[name] = values
         dictQuoteds[name] = attr.quoted
@@ -255,7 +289,7 @@ class Binder {
         let quoted = dictQuoteds[name] || ''
         return `${name}=${quoted}${values.join(' ')}${quoted}`
       }).join(' ')
-    }
+    })
   }
 
   templateRender(templateName: string, scope: Scope): string {
@@ -271,6 +305,29 @@ class Binder {
 
   registrCompiler(templateType: string, compiler: TemplateCompilerFunction) {
     this._compiler[templateType] = compiler
+  }
+
+  cleanChildren(scope: Scope) {
+    if (scope.children) {
+      scope.children.forEach((item) => {
+
+        let binds = item.model && item.model.$$binds
+        if (binds) {
+          // remove scope
+          let index = binds.indexOf(item)
+          if (index >= 0) {
+            binds.splice(index, 1)
+          }
+        }
+        if (this._onScopeDestroy) {
+          this._onScopeDestroy(item);
+        }
+        delete this._binds[item.id]
+
+        this.cleanChildren(item)
+        scope.children = [];
+      })
+    }
   }
 
   /**
@@ -293,49 +350,37 @@ class Binder {
       bindObjectName: this._bindObjectName,
       templateRender: this.templateRender,
       attrsRender: this._attrsRender,
+      eventAttributePrefix: this._eventAttributePrefix,
     }
+    this._newScopes.push(scope)
 
     Object.defineProperty(scope, 'element', {
       enumerable: true,
       configurable: true,
-      get: function () {
+      get: () => {
         return scope._element
       },
-      set: function (value) {
+      set: (value) => {
         scope._element = value
         if (value) {
           value.setAttribute(scope.scopeAttributeName, scope.id)
+          if (this._onScopeCreate) {
+            this._newScopes.forEach((scope) => {
+              this._onScopeCreate(scope)
+            })
+          }
+          this._newScopes = []
         }
       }
     })
 
-    let cleanChilder = (scope: Scope) => {
-      if (scope.children) {
-        scope.children.forEach((item) => {
-
-          let binds = item.model && item.model.$$binds
-          if (binds) {
-            // remove scope
-            let index = binds.indexOf(item)
-            if (index >= 0) {
-              binds.splice(index, 1)
-            }
-          }
-          delete this._binds[item.id]
-
-          cleanChilder(item)
-        })
-      }
-    }
     if (outerBindRender) {
       scope.outerRender = (output, holdInner) => {
-        cleanChilder(scope)
         return outerBindRender(output, scope, holdInner)
       }
     }
     if (innerBindRender) {
       scope.innerRender = (output) => {
-        cleanChilder(scope)
         return innerBindRender(output, scope)
       }
     }
@@ -377,13 +422,21 @@ class Binder {
   }
 
   /**
+   * 通过作用域查找元素
+   * @param scope
+   */
+  public element(scope: Scope): Element {
+    return scope._element || this._findElement(scope)
+  }
+
+  /**
    * update
    */
   public update(scope: Scope) {
     delete scope.methods
     delete scope.attrs
 
-    this._updateElement(scope._element || this._findElement(scope), scope)
+    this._updateElement(this.element(scope), scope)
   }
 
   public scope(id: Element | string) {

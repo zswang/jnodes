@@ -99,7 +99,7 @@ function parser_tokenizer(code: string): H5Node[] {
     while (true) {
       // find attrName
       match = code.slice(scanpos + offset).match(
-        /^\s*(:?[\w_]+[\w_-]*[\w_]|[\w_]+)\s*/
+        /^\s*([:@]?[\w_]+[\w_-]*[\w_]|[\w_]+)\s*/
       )
       if (!match) {
         break

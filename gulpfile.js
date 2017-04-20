@@ -44,7 +44,9 @@ gulp.task('open', function() {
 gulp.task('connect', function() {
   connect.server({
     port: port,
-    livereload: true
+    livereload: {
+      prot: 35730
+    }
   })
 })
 
