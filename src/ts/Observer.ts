@@ -22,8 +22,92 @@ interface FilterFunction {
  *
  * @param model 数据
  * @param trigger 触发函数
+ * @example observer():trigger is undefined
+  ```js
+  var data = { a: 1 };
+  jnodes.observer(data);
+  ```
+ * @example observer():trigger
+  ```js
+  var data = { a: 1 };
+  jnodes.observer(data, function () {
+    console.log(data.a);
+  });
+  data.a = 2;
+  // > 2
+  ```
+ * @example observer():filter
+  ```js
+  var data = { a: 1, b: 1 };
+  var count = 0;
+  jnodes.observer(data, function () {
+    count++;
+  }, function (key) {
+    return key === 'a';
+  });
+  data.a = 2;
+  console.log(count);
+  // > 1
+
+  data.a = 2;
+  console.log(count);
+  // > 1
+
+  data.b = 2;
+  console.log(count);
+  // > 1
+  ```
+ * @example observer():configurable is false
+  ```js
+  var data = { a: 1 };
+  Object.defineProperty(data, 'a', {
+    enumerable: true,
+    configurable: false,
+  });
+  var i = 0;
+  jnodes.observer(data, function () {
+    i = 1;
+  });
+  data.a = 2;
+  console.log(i);
+  // > 0
+  ```
+ * @example observer():getter/setter
+  ```js
+  var data = { a: 1 };
+  var _x = 0;
+  Object.defineProperty(data, 'x', {
+    enumerable: true,
+    configurable: true,
+    get: function () {
+      return _x;
+    },
+    set: function (value) {
+      _x = value;
+    }
+  });
+  jnodes.observer(data, function () {});
+  data.x = 123;
+  console.log(data.x);
+  // > 123
+  ```
+ * @example observer():array
+  ```js
+  var data = [1, 2, 3];
+  var count = 0;
+  jnodes.observer(data, function () {
+    count++;
+  });
+  data.push(4);
+  console.log(count);
+  // > 1
+
+  data.sort();
+  console.log(count);
+  // > 2
+  ```
  */
-const observer = function (model: any, trigger: TriggerFunction, filter?: FilterFunction) {
+function observer(model: any, trigger: TriggerFunction, filter?: FilterFunction) {
   if (!trigger) {
     return;
   }
@@ -45,10 +129,10 @@ const observer = function (model: any, trigger: TriggerFunction, filter?: Filter
     Object.defineProperty(model, key, {
       enumerable: true,
       configurable: true,
-      get: function () {
+      get: () => {
         return getter ? getter.call(model) : value;
       },
-      set: function (newVal: any) {
+      set: (newVal: any) => {
         var val = getter ? getter.call(model) : value;
         if (newVal === val) {
           return;
@@ -73,7 +157,7 @@ const observer = function (model: any, trigger: TriggerFunction, filter?: Filter
       'sort',
       'reverse',
     ]
-      .forEach(function (method: string) {
+      .forEach((method) => {
         // cache original method
         let original = model[method];
 
@@ -89,7 +173,7 @@ const observer = function (model: any, trigger: TriggerFunction, filter?: Filter
         });
       });
   } else {
-    Object.keys(model).forEach(function (key: string) {
+    Object.keys(model).forEach((key: string) => {
       define(key, model[key]);
     });
   }

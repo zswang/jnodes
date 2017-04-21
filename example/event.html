@@ -251,12 +251,22 @@
 
   function scopeLife(type) {
     return function (scope) {
+      if (!scope.lifecycle) {
+        return;
+      }
       var element = binder.element(scope);
       if (element) {
-        [].slice.apply(element.querySelectorAll('[data-jnodes-event-' + type + ']')).forEach(function(element) {
+        var elements;
+        if (element.getAttribute('data-jnodes-event-' + type)) {
+          elements = [element];
+        } else {
+          elements = [];
+        }
+        [].push.apply(elements, element.querySelectorAll('[data-jnodes-event-' + type + ']'));
+        elements.forEach(function(item) {
           var e = { type: type };
-          triggerScopeEvent(e, element);
-          element.removeAttribute('data-jnodes-event-' + type);
+          triggerScopeEvent(e, item);
+          item.removeAttribute('data-jnodes-event-' + type);
         });
       }
     }

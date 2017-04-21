@@ -14,7 +14,7 @@ function compiler_ejs(node: H5Node, bindObjectName: string) {
   }
 
   if (node.tag === ':template') {
-    node.attrs.some(function (attr) {
+    node.attrs.some((attr) => {
       if (attr.name === 'name') {
         node.overwriteNode = `<%${indent}/***/ $out += ${bindObjectName}.templateRender(${JSON.stringify(attr.value)}, _scope_, ${bindObjectName}.bind); %>`
         return true
@@ -29,7 +29,7 @@ function compiler_ejs(node: H5Node, bindObjectName: string) {
   let varintAttrs = `<%${indent}/***/ var _attrs_ = [\n`
   let hasOverwriteAttr
   let bindDataValue
-  node.attrs.forEach(function (attr) {
+  node.attrs.forEach((attr) => {
     let value
     if (attr.name[0] === ':') {
       if (attr.name === ':bind') {
@@ -37,6 +37,8 @@ function compiler_ejs(node: H5Node, bindObjectName: string) {
       }
       hasOverwriteAttr = true
       value = attr.value
+    } else if (attr.name[0] === '@') {
+      value = `function (event) { with (_scope_.import || {}) { ${attr.value} }}`
     } else {
       value = JSON.stringify(attr.value)
     }

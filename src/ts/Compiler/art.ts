@@ -2,7 +2,7 @@ import { H5Node } from "../Types"
 
 /*<function name="compiler_art">*/
 function compiler_art(node: H5Node, bindObjectName: string) {
-  var indent = node.indent || ''
+  let indent = node.indent || ''
   if (node.type === 'root') {
     node.beforebegin = `<%${indent}/***/ var _rootScope_ = ${bindObjectName}.bind($data, { root: true }, null, function (_output_, _scope_) { var $out = ''; %>`
     node.afterend = `<%${indent}/***/ _output_.push($out); }); var _output_ = []; _rootScope_.innerRender(_output_); $out += _output_.join(''); ${bindObjectName}.bind.$$scope = _rootScope_; %>`
@@ -14,7 +14,7 @@ function compiler_art(node: H5Node, bindObjectName: string) {
   }
 
   if (node.tag === ':template') {
-    node.attrs.some(function (attr) {
+    node.attrs.some((attr) => {
       if (attr.name === 'name') {
         node.overwriteNode = `<% $out += ${bindObjectName}.templateRender(${JSON.stringify(attr.value)}, _scope_, ${bindObjectName}.bind); %>`
         return true
@@ -26,17 +26,19 @@ function compiler_art(node: H5Node, bindObjectName: string) {
   if (!node.attrs || !node.attrs.length) {
     return
   }
-  var varintAttrs = `<%${indent}/***/ var _attrs_ = [\n`
-  var hasOverwriteAttr
-  var bindDataValue
-  node.attrs.forEach(function (attr) {
-    var value
+  let varintAttrs = `<%${indent}/***/ var _attrs_ = [\n`
+  let hasOverwriteAttr
+  let bindDataValue
+  node.attrs.forEach((attr) => {
+    let value
     if (attr.name[0] === ':') {
       if (attr.name === ':bind') {
         bindDataValue = attr.value
       }
       hasOverwriteAttr = true
       value = attr.value
+    } else if (attr.name[0] === '@') {
+      value = `function (event) { with (_scope_.import || {}) { ${attr.value} }}`
     } else {
       value = JSON.stringify(attr.value)
     }

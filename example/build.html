@@ -31,7 +31,7 @@
       <ul :bind="books">
       books.forEach(function (book) {
         <li :bind="book" class="book" :class="{ star: book.star }">
-          #{book.title}
+          <span @dblclick="show(book.title)">#{book.title}</span>
           if (book.star) {
           <button cmd="star">🌟</button>
           } else {
@@ -110,6 +110,9 @@
         }
         hasOverwriteAttr = true;
         value = attr.value;
+      } else if (attr.name[0] === '@') {
+        hasOverwriteAttr = true;
+        value = "function (event) { with (_scope_.import || {}) { " + attr.value + " }}";
       } else {
         value = JSON.stringify(attr.value);
       }
@@ -136,6 +139,50 @@
 
   element.innerHTML = jhtmls.render(template, rootData);
   jnodes.bind.$$scope.element = element;
+  var importScope = {
+    show: function (text) {
+      console.log('text: %s', text)
+    }
+  };
+
+  function findEventTarget(parent, target, selector) {
+    var elements = [].slice.call(parent.querySelectorAll(selector));
+    while (target && elements.indexOf(target) < 0) {
+      target = target.parentNode;
+    }
+    return target;
+  }
+
+  function triggerScopeEvent(event, target) {
+    target = target || event.target;
+    var cmd = target.getAttribute('data-jnodes-event-' + event.type);
+    if (cmd && cmd[0] === '@') {
+      var scope = binder.scope(target);
+      scope.import = importScope
+      var method = (scope.methods || {})[cmd]
+      if (method) {
+        method.call(target, event);
+      }
+    }
+  }
+
+  ['click', 'dblclick', 'keydown', 'keyup', 'focusin', 'focusout'].forEach(function (eventName) {
+    element.addEventListener(eventName, function (e) {
+      if (e.target.getAttribute('data-jnodes-event-input')) {
+        if (eventName === 'focusin') {
+          e.target.addEventListener('input', triggerScopeEvent)
+        } else if (eventName === 'focusout') {
+          e.target.removeEventListener('input', triggerScopeEvent)
+        }
+      }
+
+      var target = findEventTarget(element, e.target, '[data-jnodes-event-' + eventName + ']');
+      if (!target) {
+        return;
+      }
+      triggerScopeEvent(e, target);
+    })
+  });
 
   h5tap(element, 'button', function (element) {
     var scope = binder.scope(element);

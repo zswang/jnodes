@@ -5,8 +5,89 @@
  *
  * @param model 数据
  * @param trigger 触发函数
+ * @example observer():trigger is undefined
+  ```js
+  var data = { a: 1 };
+  jnodes.observer(data);
+  ```
+ * @example observer():trigger
+  ```js
+  var data = { a: 1 };
+  jnodes.observer(data, function () {
+    console.log(data.a);
+  });
+  data.a = 2;
+  // > 2
+  ```
+ * @example observer():filter
+  ```js
+  var data = { a: 1, b: 1 };
+  var count = 0;
+  jnodes.observer(data, function () {
+    count++;
+  }, function (key) {
+    return key === 'a';
+  });
+  data.a = 2;
+  console.log(count);
+  // > 1
+  data.a = 2;
+  console.log(count);
+  // > 1
+  data.b = 2;
+  console.log(count);
+  // > 1
+  ```
+ * @example observer():configurable is false
+  ```js
+  var data = { a: 1 };
+  Object.defineProperty(data, 'a', {
+    enumerable: true,
+    configurable: false,
+  });
+  var i = 0;
+  jnodes.observer(data, function () {
+    i = 1;
+  });
+  data.a = 2;
+  console.log(i);
+  // > 0
+  ```
+ * @example observer():getter/setter
+  ```js
+  var data = { a: 1 };
+  var _x = 0;
+  Object.defineProperty(data, 'x', {
+    enumerable: true,
+    configurable: true,
+    get: function () {
+      return _x;
+    },
+    set: function (value) {
+      _x = value;
+    }
+  });
+  jnodes.observer(data, function () {});
+  data.x = 123;
+  console.log(data.x);
+  // > 123
+  ```
+ * @example observer():array
+  ```js
+  var data = [1, 2, 3];
+  var count = 0;
+  jnodes.observer(data, function () {
+    count++;
+  });
+  data.push(4);
+  console.log(count);
+  // > 1
+  data.sort();
+  console.log(count);
+  // > 2
+  ```
  */
-var observer = function (model, trigger, filter) {
+function observer(model, trigger, filter) {
     if (!trigger) {
         return;
     }
@@ -73,19 +154,151 @@ var observer = function (model, trigger, filter) {
             define(key, model[key]);
         });
     }
-}; /*</function>*/
+} /*</function>*/
 /*<function name="Binder" depend="observer">*/
 var guid = 0;
+/**
+ * @example bind():base
+  ```js
+  var binder = new jnodes.Binder();
+  var data = {x: 1, y: 2};
+  var rootScope = {};
+  var count = 0;
+  binder.bind(data, rootScope, function (output) {
+    output.push('<div></div>');
+    count++;
+  });
+  console.log(rootScope.children.length);
+  // > 1
+  var element = {};
+  global.document = { querySelector: function(selector) {
+    console.log(selector);
+    // > [data-jnodes-scope="0"]
+    return element;
+  } };
+  console.log(count);
+  // > 0
+  data.x = 2;
+  console.log(count);
+  // > 1
+  console.log(JSON.stringify(element));
+  // > {"outerHTML":"<div></div>"}
+  ```
+ * @example bind():bind jhtmls
+  ```html
+  <div>
+    <script type="text/jhtmls">
+    <ul :bind="books">
+    books.forEach(function (book) {
+      <li :bind="book">
+        <:template name="book"/>
+      </li>
+    });
+    </ul>
+    </script>
+  </div>
+  <script type="text/jhtmls" id="book">
+  <a href="#{id}">#{title}</a>
+  </script>
+  ```
+  ```js
+  var binder = new jnodes.Binder({
+    onScopeCreate: function () {},
+    onScopeDestroy: function () {},
+  });
+  jnodes.bind = function () {
+    return binder.bind.apply(binder, arguments);
+  };
+  jnodes.templateRender = function () {
+    return binder.templateRender.apply(binder, arguments);
+  };
+  var books = [{id: 1, title: 'book1'}, {id: 2, title: 'book2'}, {id: 3, title: 'book3'}];
+  binder.registerCompiler('jhtmls', function (templateCode, bindObjectName) {
+    var node = jnodes.Parser.parse(templateCode);
+    var code = jnodes.Parser.build(node, bindObjectName, compiler_jhtmls);
+    return jhtmls.render(code);
+  });
+  var bookRender = binder.templateCompiler('jhtmls', document.querySelector('#book').innerHTML);
+  binder.registerTemplate('book', function (scope) {
+    return bookRender(scope.model);
+  });
+  var div = document.querySelector('div');
+  div.innerHTML = binder.templateCompiler('jhtmls', div.querySelector('script').innerHTML)({
+    books: books
+  });
+  var rootScope = jnodes.bind.$$scope;
+  rootScope.element = null;
+  rootScope.element = div;
+  console.log(rootScope.element === div);
+  // > true
+  console.log(div.querySelector('ul li a').innerHTML);
+  // > book1
+  books[0].title = 'Star Wars';
+  console.log(div.querySelector('ul li a').innerHTML);
+  // > Star Wars
+  console.log(binder.scope(div) === rootScope);
+  // > true
+  console.log(binder.scope(div.querySelector('ul li a')).model.id === 1);
+  // > true
+  books.shift();
+  console.log(binder.scope(div.querySelector('ul li a')).model.id === 2);
+  // > true
+  ```
+ * @example bind():bind jhtmls 2
+  ```html
+  <div>
+    <script type="text/jhtmls">
+    <ul :bind="books">
+    books.forEach(function (book) {
+      <li :bind="book">
+        <a :href="'/' + book.id" :bind="book.title">#{book.title}</a>
+        <span :bind="book.id">#{book.id}</span>
+      </li>
+    });
+    </ul>
+    </script>
+  </div>
+  ```
+  ```js
+  var binder = new jnodes.Binder();
+  jnodes.bind = function () {
+    return binder.bind.apply(binder, arguments);
+  };
+  jnodes.templateRender = function () {
+    return binder.templateRender.apply(binder, arguments);
+  };
+  var books = [{id: 1, title: 'book1'}, {id: 2, title: 'book2'}, {id: 3, title: 'book3'}];
+  binder.registerCompiler('jhtmls', function (templateCode, bindObjectName) {
+    var node = jnodes.Parser.parse(templateCode);
+    var code = jnodes.Parser.build(node, bindObjectName, compiler_jhtmls);
+    return jhtmls.render(code);
+  });
+  var div = document.querySelector('div');
+  div.innerHTML = binder.templateCompiler('jhtmls', div.querySelector('script').innerHTML)({
+    books: books
+  });
+  console.info(div.innerHTML);
+  var rootScope = jnodes.bind.$$scope;
+  rootScope.element = div;
+  console.log(JSON.stringify(binder.scope(div.querySelector('ul li a')).model));
+  // > "book1"
+  console.log(JSON.stringify(binder.scope(div.querySelector('ul li span')).model));
+  // > 1
+  books.shift();
+  console.log(JSON.stringify(binder.scope(div.querySelector('ul li a')).model));
+  // > "book2"
+  ```
+   */
 var Binder = (function () {
     function Binder(options) {
         var _this = this;
         options = options || {};
         this._binds = {};
         this._templates = {};
-        this._bindAttributeName = options.bindAttributeName || 'bind';
-        this._scopeAttributeName = options.scopeAttributeName || 'data-jnodes-scope';
         this._bindObjectName = options.bindObjectName || 'jnodes';
-        this._eventAttributePrefix = options.eventAttributePrefix || 'data-jnodes-event-';
+        this._bindAttributeName = options.bindAttributeName || 'bind';
+        this._scopeAttributeName = options.scopeAttributeName || "data-" + this._bindObjectName + "-scope";
+        this._eventAttributePrefix = options.eventAttributePrefix || "data-" + this._bindObjectName + "-event-";
         this._onScopeCreate = options.onScopeCreate;
         this._onScopeDestroy = options.onScopeDestroy;
         this._templates = {};
@@ -146,6 +359,9 @@ var Binder = (function () {
                     values.push(scope.id);
                 }
                 else if (scope.eventAttributePrefix && '@' === attr.name[0]) {
+                    if (name === 'create' || name === 'destroy') {
+                        scope.lifecycle = true;
+                    }
                     name = scope.eventAttributePrefix + name;
                 }
                 dictValues[name] = values;
@@ -158,6 +374,7 @@ var Binder = (function () {
                     return;
                 }
                 switch (typeof attr.value) {
+                    case 'boolean':
                     case 'number':
                     case 'string':
                         values.push(attr.value);
@@ -193,15 +410,24 @@ var Binder = (function () {
             }).join(' ');
         });
     }
-    Binder.prototype.templateRender = function (templateName, scope) {
-        var render = this._templates[templateName];
-        var result = render(scope);
-        return result;
-    };
-    Binder.prototype.registrTemplate = function (templateName, render) {
+    Binder.prototype.registerTemplate = function (templateName, render) {
         this._templates[templateName] = render;
     };
-    Binder.prototype.registrCompiler = function (templateType, compiler) {
+    Binder.prototype.templateRender = function (templateName, scope) {
+        var render = this._templates[templateName];
+        if (!render) {
+            return;
+        }
+        return render(scope);
+    };
+    Binder.prototype.templateCompiler = function (templateType, templateCode) {
+        var compiler = this._compiler[templateType];
+        if (!compiler) {
+            return;
+        }
+        return compiler(templateCode, this._bindObjectName);
+    };
+    Binder.prototype.registerCompiler = function (templateType, compiler) {
         this._compiler[templateType] = compiler;
     };
     Binder.prototype.cleanChildren = function (scope) {
@@ -387,18 +613,21 @@ function parser_tokenizer(code) {
         var indent = match[1];
         if (match[2]) {
             match = code.slice(scanpos + offset).match(/-->/);
-            if (match) {
-                offset += match.index + match[0].length;
-                var node_1 = pushToken('comment', scanpos, scanpos + offset);
+            if (!match) {
+                var node_1 = pushToken('comment', scanpos, code.length);
                 node_1.indent = indent;
+                break;
             }
+            offset += match.index + match[0].length;
+            var node_2 = pushToken('comment', scanpos, scanpos + offset);
+            node_2.indent = indent;
             continue;
         }
         var tag = match[3];
         if (tag) {
-            var node_2 = pushToken('right', scanpos, scanpos + offset);
-            node_2.tag = tag;
-            node_2.indent = indent;
+            var node_3 = pushToken('right', scanpos, scanpos + offset);
+            node_3.tag = tag;
+            node_3.indent = indent;
             continue;
         }
         // "<tag"
@@ -440,16 +669,70 @@ function parser_tokenizer(code) {
         }
         offset += match[0].length;
         var single = match[1] || parser_void_elements.indexOf(tag) >= 0;
-        var node_3 = pushToken(single ? 'single' : 'left', scanpos, scanpos + offset);
-        node_3.tag = tag;
-        node_3.attrs = attrs;
-        node_3.indent = indent;
-        node_3.selfClosing = parser_void_elements.indexOf(tag) >= 0;
+        var node = pushToken(single ? 'single' : 'left', scanpos, scanpos + offset);
+        node.tag = tag;
+        node.attrs = attrs;
+        node.indent = indent;
+        node.selfClosing = parser_void_elements.indexOf(tag) >= 0;
     }
     pushToken('text', scanpos, code.length); // 记录 text
     return resultNodes;
 } /*</function>*/
 /*<function name="parser_parse" depend="parser_tokenizer">*/
+/**
+ * 解析 HTML 代码
+ *
+ * @param code
+ * @return 返回根节点
+ * @example parser_parse:base
+  ```js
+  var node = jnodes.Parser.parse(`<!--test--><div class="box"></div>`);
+  console.log(JSON.stringify(node));
+  // > {"type":"root","pos":0,"endpos":34,"children":[{"type":"comment","pos":0,"endpos":11,"value":"<!--test-->","indent":""},{"type":"block","pos":11,"endpos":34,"tag":"div","attrs":[{"name":"class","value":"box","quoted":"\""}],"indent":"","selfClosing":false,"children":[]}]}
+  ```
+ * @example parser_parse:text
+  ```js
+  var node = jnodes.Parser.parse(`hello`);
+  console.log(JSON.stringify(node));
+  // > {"type":"root","pos":0,"endpos":5,"children":[{"type":"text","pos":0,"endpos":5,"value":"hello"}]}
+  ```
+ * @example parser_parse:comment not closed.
+  ```js
+  var node = jnodes.Parser.parse(`<!--hello`);
+  console.log(JSON.stringify(node));
+  // > {"type":"root","pos":0,"endpos":9,"children":[{"type":"comment","pos":0,"endpos":9,"value":"<!--hello","indent":""}]}
+  ```
+ * @example parser_parse:attribute is emtpy
+  ```js
+  var node = jnodes.Parser.parse(`<div><input type=text readonly></div>`);
+  console.log(JSON.stringify(node));
+  // > {"type":"root","pos":0,"endpos":37,"children":[{"type":"block","pos":0,"endpos":37,"tag":"div","attrs":[],"indent":"","selfClosing":false,"children":[{"type":"single","pos":5,"endpos":31,"tag":"input","attrs":[{"name":"type","value":"text","quoted":""},{"name":"readonly","value":"","quoted":""}],"indent":"","selfClosing":true}]}]}
+  ```
+ * @example parser_parse:tag not closed
+  ```js
+  var node = jnodes.Parser.parse(`<input type=text readonly`);
+  console.log(JSON.stringify(node));
+  // > {"type":"root","pos":0,"endpos":25,"children":[{"type":"text","pos":0,"endpos":25,"value":"<input type=text readonly"}]}
+  ```
+ * @example parser_parse:tag asymmetric
+  ```js
+  var node = jnodes.Parser.parse(`<div><span></div></span>`);
+  console.log(JSON.stringify(node));
+  // * throw
+  ```
+ * @example parser_parse:tag asymmetric
+  ```js
+  var node = jnodes.Parser.parse(`<section><div></div>\n</span>`);
+  console.log(JSON.stringify(node));
+  // * throw
+  ```
+ * @example parser_parse:tag nesting
+  ```js
+  var node = jnodes.Parser.parse(`<div><div><div></div><div></div></div></div>`);
+  console.log(JSON.stringify(node));
+  // > {"type":"root","pos":0,"endpos":44,"children":[{"type":"block","pos":0,"endpos":44,"tag":"div","attrs":[],"indent":"","selfClosing":false,"children":[{"type":"block","pos":5,"endpos":38,"tag":"div","attrs":[],"indent":"","selfClosing":false,"children":[{"type":"block","pos":10,"endpos":21,"tag":"div","attrs":[],"indent":"","selfClosing":false,"children":[]},{"type":"block","pos":21,"endpos":32,"tag":"div","attrs":[],"indent":"","selfClosing":false,"children":[]}]}]}]}
+  ```
+ */
 function parser_parse(code) {
     var root = {
         type: 'root',
@@ -459,6 +742,9 @@ function parser_parse(code) {
     };
     var current = root;
     var tokens = parser_tokenizer(code);
+    /*<debug>
+    console.log(JSON.stringify(tokens, null, '  '))
+    //</debug>*/
     var lefts = []; // 左边标签集合，用于寻找配对的右边标签
     tokens.forEach(function (token) {
         switch (token.type) {
@@ -483,7 +769,9 @@ function parser_parse(code) {
                     buffer = code.slice(0, token.endpos).split('\n');
                     line = buffer.length;
                     col = buffer[buffer.length - 1].length + 1;
+                    /*<debug>*/
                     lightcode(buffer, 5);
+                    /*</debug>*/
                     error = 'No start tag. (line:' + token.line + ' col:' + token.col + ')';
                     console.error(error);
                     throw error;
@@ -509,7 +797,9 @@ function parser_parse(code) {
                             buffer = code.slice(0, token.endpos).split('\n');
                             line = buffer.length;
                             col = buffer[buffer.length - 1].length + 1;
+                            /*<debug>*/
                             lightcode(buffer, 5);
+                            /*</debug>*/
                             error = 'No start tag. (line:' + token.line + ' col:' + token.col + ')';
                             console.error(error);
                             throw error;
@@ -523,8 +813,12 @@ function parser_parse(code) {
                 break;
         }
     });
+    /*<debug>
+    console.log(JSON.stringify(root, null, '  '))
+    //</debug>*/
     return root;
 }
+/*<debug>*/
 function lightcode(buffer, count) {
     var len = buffer.length.toString().length;
     var lines = buffer.slice(-count);
@@ -534,7 +828,7 @@ function lightcode(buffer, count) {
         lines[i] = l + (i === lines.length - 1 ? ' > ' : '   ') + '| ' + lines[i];
     }
     console.log(lines.join('\n'));
-} /*</function>*/
+} /*</debug>*/ /*</function>*/
 /*<function name="parser_build">*/
 /**
  * @preview
@@ -549,6 +843,61 @@ function lightcode(buffer, count) {
   ```
  * @param node
  * @param hook
+ * @return 返回构建后的 HTML 字符串
+ * @example parser_build:base
+  ```js
+  var node = jnodes.Parser.parse(`<input type=text readonly>`)
+  console.log(jnodes.Parser.build(node));
+  // > <input type=text readonly>
+  console.log(JSON.stringify(jnodes.Parser.build()));
+  // > ""
+  ```
+ * @example parser_build:hook
+  ```js
+  var node = jnodes.Parser.parse(`<div>text</div>`)
+  console.log(jnodes.Parser.build(node, null, function (node, options) {
+    if (node.tag) {
+      node.beforebegin = `[beforebegin]`;
+      node.beforeend = `[beforeend]`;
+      node.afterbegin = `[afterbegin]`;
+      node.afterend = `[afterend]`;
+    }
+  }));
+  // > [beforebegin]<div>[beforeend]text[afterbegin]</div>[afterend]
+  ```
+ * @example parser_build:hook overwriteNode
+  ```js
+  var node = jnodes.Parser.parse(`<div><tnt/></div>`)
+  console.log(jnodes.Parser.build(node, null, function (node, options) {
+    if (node.tag === 'tnt') {
+      node.overwriteNode = `<img src="tnt.png">`;
+    }
+  }));
+  // > <div><img src="tnt.png"></div>
+  ```
+ * @example parser_build:hook overwriteAttrs
+  ```js
+  var node = jnodes.Parser.parse(`<div><bigimg alt="none"/></div>`)
+  console.log(jnodes.Parser.build(node, null, function (node, options) {
+    if (node.tag === 'bigimg') {
+      node.overwriteAttrs = `src="tnt.png" alt="tnt"`;
+    }
+  }));
+  // > <div><bigimg src="tnt.png" alt="tnt"/></div>
+  var node = jnodes.Parser.parse(`<div><bigimg alt="none"/></div>`)
+  console.log(jnodes.Parser.build(node, null, function (node, options) {
+    if (node.tag === 'bigimg') {
+      node.overwriteAttrs = ``;
+    }
+  }));
+  // > <div><bigimg/></div>
+  ```
+ * @example parser_build:indent
+  ```js
+  var node = jnodes.Parser.parse(`<div>\n  <span>hello</span>\n</div>`)
+  console.log(JSON.stringify(jnodes.Parser.build(node)));
+  // > "<div>\n  <span>hello</span>\n</div>"
+  ```
  */
 function parser_build(node, options, hook) {
     if (!node) {
@@ -628,6 +977,7 @@ var Parser = {
 }; /*</function>*/
   var exports = {
       Binder: Binder,
+      observer: observer,
       Parser: Parser,
   };
   /* istanbul ignore next */

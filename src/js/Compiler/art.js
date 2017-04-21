@@ -35,6 +35,9 @@ function compiler_art(node, bindObjectName) {
             hasOverwriteAttr = true;
             value = attr.value;
         }
+        else if (attr.name[0] === '@') {
+            value = "function (event) { with (_scope_.import || {}) { " + attr.value + " }}";
+        }
         else {
             value = JSON.stringify(attr.value);
         }

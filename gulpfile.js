@@ -25,6 +25,7 @@ gulp.task('example', function() {
 global.jnodes = require('../jnodes.js');
 global.ejs = require('ejs');
 global.jhtmls = require('jhtmls');
+global.compiler_jhtmls = require('../src/js/Compiler/jhtmls').compiler_jhtmls;
       `
     }))
     .pipe(rename({

@@ -136,7 +136,7 @@
   var script = document.querySelector('#book');
 
   var render = ejs.compile(script.innerHTML);
-  binder.registrTemplate('button', function (scope) {
+  binder.registerTemplate('button', function (scope) {
     return render(scope.model);
   })
 

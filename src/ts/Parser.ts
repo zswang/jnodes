@@ -75,11 +75,14 @@ function parser_tokenizer(code: string): H5Node[] {
       match = code.slice(scanpos + offset).match(
         /-->/
       )
-      if (match) {
-        offset += match.index + match[0].length
-        let node = pushToken('comment', scanpos, scanpos + offset)
+      if (!match) {
+        let node = pushToken('comment', scanpos, code.length)
         node.indent = indent
+        break
       }
+      offset += match.index + match[0].length
+      let node = pushToken('comment', scanpos, scanpos + offset)
+      node.indent = indent
       continue
     }
 
@@ -162,6 +165,60 @@ function parser_tokenizer(code: string): H5Node[] {
 } /*</function>*/
 
 /*<function name="parser_parse" depend="parser_tokenizer">*/
+/**
+ * 解析 HTML 代码
+ *
+ * @param code
+ * @return 返回根节点
+ * @example parser_parse:base
+  ```js
+  var node = jnodes.Parser.parse(`<!--test--><div class="box"></div>`);
+  console.log(JSON.stringify(node));
+  // > {"type":"root","pos":0,"endpos":34,"children":[{"type":"comment","pos":0,"endpos":11,"value":"<!--test-->","indent":""},{"type":"block","pos":11,"endpos":34,"tag":"div","attrs":[{"name":"class","value":"box","quoted":"\""}],"indent":"","selfClosing":false,"children":[]}]}
+  ```
+ * @example parser_parse:text
+  ```js
+  var node = jnodes.Parser.parse(`hello`);
+  console.log(JSON.stringify(node));
+  // > {"type":"root","pos":0,"endpos":5,"children":[{"type":"text","pos":0,"endpos":5,"value":"hello"}]}
+  ```
+ * @example parser_parse:comment not closed.
+  ```js
+  var node = jnodes.Parser.parse(`<!--hello`);
+  console.log(JSON.stringify(node));
+  // > {"type":"root","pos":0,"endpos":9,"children":[{"type":"comment","pos":0,"endpos":9,"value":"<!--hello","indent":""}]}
+  ```
+ * @example parser_parse:attribute is emtpy
+  ```js
+  var node = jnodes.Parser.parse(`<div><input type=text readonly></div>`);
+  console.log(JSON.stringify(node));
+  // > {"type":"root","pos":0,"endpos":37,"children":[{"type":"block","pos":0,"endpos":37,"tag":"div","attrs":[],"indent":"","selfClosing":false,"children":[{"type":"single","pos":5,"endpos":31,"tag":"input","attrs":[{"name":"type","value":"text","quoted":""},{"name":"readonly","value":"","quoted":""}],"indent":"","selfClosing":true}]}]}
+  ```
+ * @example parser_parse:tag not closed
+  ```js
+  var node = jnodes.Parser.parse(`<input type=text readonly`);
+  console.log(JSON.stringify(node));
+  // > {"type":"root","pos":0,"endpos":25,"children":[{"type":"text","pos":0,"endpos":25,"value":"<input type=text readonly"}]}
+  ```
+ * @example parser_parse:tag asymmetric
+  ```js
+  var node = jnodes.Parser.parse(`<div><span></div></span>`);
+  console.log(JSON.stringify(node));
+  // * throw
+  ```
+ * @example parser_parse:tag asymmetric
+  ```js
+  var node = jnodes.Parser.parse(`<section><div></div>\n</span>`);
+  console.log(JSON.stringify(node));
+  // * throw
+  ```
+ * @example parser_parse:tag nesting
+  ```js
+  var node = jnodes.Parser.parse(`<div><div><div></div><div></div></div></div>`);
+  console.log(JSON.stringify(node));
+  // > {"type":"root","pos":0,"endpos":44,"children":[{"type":"block","pos":0,"endpos":44,"tag":"div","attrs":[],"indent":"","selfClosing":false,"children":[{"type":"block","pos":5,"endpos":38,"tag":"div","attrs":[],"indent":"","selfClosing":false,"children":[{"type":"block","pos":10,"endpos":21,"tag":"div","attrs":[],"indent":"","selfClosing":false,"children":[]},{"type":"block","pos":21,"endpos":32,"tag":"div","attrs":[],"indent":"","selfClosing":false,"children":[]}]}]}]}
+  ```
+ */
 function parser_parse(code): H5Node {
   let root: H5Node = {
     type: 'root',
@@ -176,7 +233,7 @@ function parser_parse(code): H5Node {
   console.log(JSON.stringify(tokens, null, '  '))
   //</debug>*/
   let lefts: H5Node[] = [] // 左边标签集合，用于寻找配对的右边标签
-  tokens.forEach(function (token) {
+  tokens.forEach((token) => {
     switch (token.type) {
       case 'comment':
       case 'single':
@@ -199,7 +256,9 @@ function parser_parse(code): H5Node {
           buffer = code.slice(0, token.endpos).split('\n')
           line = buffer.length
           col = buffer[buffer.length - 1].length + 1
+          /*<debug>*/
           lightcode(buffer, 5)
+          /*</debug>*/
           error = 'No start tag. (line:' + token.line + ' col:' + token.col + ')'
           console.error(error)
           throw error
@@ -227,7 +286,9 @@ function parser_parse(code): H5Node {
               buffer = code.slice(0, token.endpos).split('\n')
               line = buffer.length
               col = buffer[buffer.length - 1].length + 1
+              /*<debug>*/
               lightcode(buffer, 5)
+              /*</debug>*/
               error = 'No start tag. (line:' + token.line + ' col:' + token.col + ')'
               console.error(error)
               throw error
@@ -248,7 +309,7 @@ function parser_parse(code): H5Node {
   //</debug>*/
   return root
 }
-
+/*<debug>*/
 function lightcode(buffer: string[], count: number) {
   let len = buffer.length.toString().length
   let lines = buffer.slice(-count)
@@ -258,7 +319,7 @@ function lightcode(buffer: string[], count: number) {
     lines[i] = l + (i === lines.length - 1 ? ' > ' : '   ') + '| ' + lines[i]
   }
   console.log(lines.join('\n'))
-} /*</function>*/
+} /*</debug>*/ /*</function>*/
 
 /*<function name="parser_build">*/
 /**
@@ -274,6 +335,62 @@ function lightcode(buffer: string[], count: number) {
   ```
  * @param node
  * @param hook
+ * @return 返回构建后的 HTML 字符串
+ * @example parser_build:base
+  ```js
+  var node = jnodes.Parser.parse(`<input type=text readonly>`)
+  console.log(jnodes.Parser.build(node));
+  // > <input type=text readonly>
+  console.log(JSON.stringify(jnodes.Parser.build()));
+  // > ""
+  ```
+ * @example parser_build:hook
+  ```js
+  var node = jnodes.Parser.parse(`<div>text</div>`)
+  console.log(jnodes.Parser.build(node, null, function (node, options) {
+    if (node.tag) {
+      node.beforebegin = `[beforebegin]`;
+      node.beforeend = `[beforeend]`;
+      node.afterbegin = `[afterbegin]`;
+      node.afterend = `[afterend]`;
+    }
+  }));
+  // > [beforebegin]<div>[beforeend]text[afterbegin]</div>[afterend]
+  ```
+ * @example parser_build:hook overwriteNode
+  ```js
+  var node = jnodes.Parser.parse(`<div><tnt/></div>`)
+  console.log(jnodes.Parser.build(node, null, function (node, options) {
+    if (node.tag === 'tnt') {
+      node.overwriteNode = `<img src="tnt.png">`;
+    }
+  }));
+  // > <div><img src="tnt.png"></div>
+  ```
+ * @example parser_build:hook overwriteAttrs
+  ```js
+  var node = jnodes.Parser.parse(`<div><bigimg alt="none"/></div>`)
+  console.log(jnodes.Parser.build(node, null, function (node, options) {
+    if (node.tag === 'bigimg') {
+      node.overwriteAttrs = `src="tnt.png" alt="tnt"`;
+    }
+  }));
+  // > <div><bigimg src="tnt.png" alt="tnt"/></div>
+
+  var node = jnodes.Parser.parse(`<div><bigimg alt="none"/></div>`)
+  console.log(jnodes.Parser.build(node, null, function (node, options) {
+    if (node.tag === 'bigimg') {
+      node.overwriteAttrs = ``;
+    }
+  }));
+  // > <div><bigimg/></div>
+  ```
+ * @example parser_build:indent
+  ```js
+  var node = jnodes.Parser.parse(`<div>\n  <span>hello</span>\n</div>`)
+  console.log(JSON.stringify(jnodes.Parser.build(node)));
+  // > "<div>\n  <span>hello</span>\n</div>"
+  ```
  */
 function parser_build(node: H5Node, options: any, hook: H5BuildHookFunction) {
   if (!node) {
@@ -359,24 +476,5 @@ let Parser = {
 } /*</function>*/
 
 export {
-  Parser,
+  Parser
 }
-
-/*<debug trigger="release">*/
-let node = parser_parse(`
-<div :bind="book" class="book">
-  <img src="img/jp.png" data-lang-src="<!--{en}img/en.png-->">
-  <span><em>#{book.title}</em></span>
-</div>
-`)
-
-let text = parser_build(node, '', function (node: H5Node) {
-  node.beforebegin = '[beforebegin]'
-  node.beforeend = '[beforeend]'
-  node.afterbegin = '[afterbegin]'
-  node.afterend = '[afterend]'
-  node.overwriteAttrs = '[overwriteAttrs]'
-})
-
-console.info(text)
-/*</debug>*/

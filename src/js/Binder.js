@@ -5,16 +5,148 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var Observer_1 = require("./Observer"); /*</jdists>*/
 /*<function name="Binder" depend="observer">*/
 var guid = 0;
+/**
+ * @example bind():base
+  ```js
+  var binder = new jnodes.Binder();
+  var data = {x: 1, y: 2};
+  var rootScope = {};
+  var count = 0;
+  binder.bind(data, rootScope, function (output) {
+    output.push('<div></div>');
+    count++;
+  });
+  console.log(rootScope.children.length);
+  // > 1
+  var element = {};
+  global.document = { querySelector: function(selector) {
+    console.log(selector);
+    // > [data-jnodes-scope="0"]
+    return element;
+  } };
+  console.log(count);
+  // > 0
+  data.x = 2;
+  console.log(count);
+  // > 1
+  console.log(JSON.stringify(element));
+  // > {"outerHTML":"<div></div>"}
+  ```
+ * @example bind():bind jhtmls
+  ```html
+  <div>
+    <script type="text/jhtmls">
+    <ul :bind="books">
+    books.forEach(function (book) {
+      <li :bind="book">
+        <:template name="book"/>
+      </li>
+    });
+    </ul>
+    </script>
+  </div>
+  <script type="text/jhtmls" id="book">
+  <a href="#{id}">#{title}</a>
+  </script>
+  ```
+  ```js
+  var binder = new jnodes.Binder({
+    onScopeCreate: function () {},
+    onScopeDestroy: function () {},
+  });
+  jnodes.bind = function () {
+    return binder.bind.apply(binder, arguments);
+  };
+  jnodes.templateRender = function () {
+    return binder.templateRender.apply(binder, arguments);
+  };
+  var books = [{id: 1, title: 'book1'}, {id: 2, title: 'book2'}, {id: 3, title: 'book3'}];
+  binder.registerCompiler('jhtmls', function (templateCode, bindObjectName) {
+    var node = jnodes.Parser.parse(templateCode);
+    var code = jnodes.Parser.build(node, bindObjectName, compiler_jhtmls);
+    return jhtmls.render(code);
+  });
+  var bookRender = binder.templateCompiler('jhtmls', document.querySelector('#book').innerHTML);
+  binder.registerTemplate('book', function (scope) {
+    return bookRender(scope.model);
+  });
+  var div = document.querySelector('div');
+  div.innerHTML = binder.templateCompiler('jhtmls', div.querySelector('script').innerHTML)({
+    books: books
+  });
+  var rootScope = jnodes.bind.$$scope;
+  rootScope.element = null;
+  rootScope.element = div;
+  console.log(rootScope.element === div);
+  // > true
+  console.log(div.querySelector('ul li a').innerHTML);
+  // > book1
+  books[0].title = 'Star Wars';
+  console.log(div.querySelector('ul li a').innerHTML);
+  // > Star Wars
+  console.log(binder.scope(div) === rootScope);
+  // > true
+  console.log(binder.scope(div.querySelector('ul li a')).model.id === 1);
+  // > true
+  books.shift();
+  console.log(binder.scope(div.querySelector('ul li a')).model.id === 2);
+  // > true
+  ```
+ * @example bind():bind jhtmls 2
+  ```html
+  <div>
+    <script type="text/jhtmls">
+    <ul :bind="books">
+    books.forEach(function (book) {
+      <li :bind="book">
+        <a :href="'/' + book.id" :bind="book.title">#{book.title}</a>
+        <span :bind="book.id">#{book.id}</span>
+      </li>
+    });
+    </ul>
+    </script>
+  </div>
+  ```
+  ```js
+  var binder = new jnodes.Binder();
+  jnodes.bind = function () {
+    return binder.bind.apply(binder, arguments);
+  };
+  jnodes.templateRender = function () {
+    return binder.templateRender.apply(binder, arguments);
+  };
+  var books = [{id: 1, title: 'book1'}, {id: 2, title: 'book2'}, {id: 3, title: 'book3'}];
+  binder.registerCompiler('jhtmls', function (templateCode, bindObjectName) {
+    var node = jnodes.Parser.parse(templateCode);
+    var code = jnodes.Parser.build(node, bindObjectName, compiler_jhtmls);
+    return jhtmls.render(code);
+  });
+  var div = document.querySelector('div');
+  div.innerHTML = binder.templateCompiler('jhtmls', div.querySelector('script').innerHTML)({
+    books: books
+  });
+  console.info(div.innerHTML);
+  var rootScope = jnodes.bind.$$scope;
+  rootScope.element = div;
+  console.log(JSON.stringify(binder.scope(div.querySelector('ul li a')).model));
+  // > "book1"
+  console.log(JSON.stringify(binder.scope(div.querySelector('ul li span')).model));
+  // > 1
+  books.shift();
+  console.log(JSON.stringify(binder.scope(div.querySelector('ul li a')).model));
+  // > "book2"
+  ```
+   */
 var Binder = (function () {
     function Binder(options) {
         var _this = this;
         options = options || {};
         this._binds = {};
         this._templates = {};
-        this._bindAttributeName = options.bindAttributeName || 'bind';
-        this._scopeAttributeName = options.scopeAttributeName || 'data-jnodes-scope';
         this._bindObjectName = options.bindObjectName || 'jnodes';
-        this._eventAttributePrefix = options.eventAttributePrefix || 'data-jnodes-event-';
+        this._bindAttributeName = options.bindAttributeName || 'bind';
+        this._scopeAttributeName = options.scopeAttributeName || "data-" + this._bindObjectName + "-scope";
+        this._eventAttributePrefix = options.eventAttributePrefix || "data-" + this._bindObjectName + "-event-";
         this._onScopeCreate = options.onScopeCreate;
         this._onScopeDestroy = options.onScopeDestroy;
         this._templates = {};
@@ -75,6 +207,9 @@ var Binder = (function () {
                     values.push(scope.id);
                 }
                 else if (scope.eventAttributePrefix && '@' === attr.name[0]) {
+                    if (name === 'create' || name === 'destroy') {
+                        scope.lifecycle = true;
+                    }
                     name = scope.eventAttributePrefix + name;
                 }
                 dictValues[name] = values;
@@ -87,6 +222,7 @@ var Binder = (function () {
                     return;
                 }
                 switch (typeof attr.value) {
+                    case 'boolean':
                     case 'number':
                     case 'string':
                         values.push(attr.value);
@@ -122,15 +258,24 @@ var Binder = (function () {
             }).join(' ');
         });
     }
-    Binder.prototype.templateRender = function (templateName, scope) {
-        var render = this._templates[templateName];
-        var result = render(scope);
-        return result;
-    };
-    Binder.prototype.registrTemplate = function (templateName, render) {
+    Binder.prototype.registerTemplate = function (templateName, render) {
         this._templates[templateName] = render;
     };
-    Binder.prototype.registrCompiler = function (templateType, compiler) {
+    Binder.prototype.templateRender = function (templateName, scope) {
+        var render = this._templates[templateName];
+        if (!render) {
+            return;
+        }
+        return render(scope);
+    };
+    Binder.prototype.templateCompiler = function (templateType, templateCode) {
+        var compiler = this._compiler[templateType];
+        if (!compiler) {
+            return;
+        }
+        return compiler(templateCode, this._bindObjectName);
+    };
+    Binder.prototype.registerCompiler = function (templateType, compiler) {
         this._compiler[templateType] = compiler;
     };
     Binder.prototype.cleanChildren = function (scope) {
