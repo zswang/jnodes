@@ -1,6 +1,34 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 /*<function name="compiler_jhtmls">*/
+/**
+ * 编译 jhtmls
+ *
+ * @param node 节点
+ * @param bindObjectName 全局对象名
+ * @example compiler_jhtmls:base
+  ```js
+  var node = {
+    tag: ':template'
+  };
+  compiler_jhtmls(node);
+  console.log(JSON.stringify(node));
+  // > {"tag":":template"}
+  ```
+ * @example compiler_jhtmls:base
+  ```js
+  var node = {
+    tag: ':template',
+    attrs: [{
+      name: 'class',
+      value: 'book'
+    }]
+  };
+  compiler_jhtmls(node);
+  console.log(JSON.stringify(node));
+  // > {"tag":":template","attrs":[{"name":"class","value":"book"}]}
+  ```
+ */
 function compiler_jhtmls(node, bindObjectName) {
     var indent = node.indent || '';
     var inserFlag = "/***/ ";
@@ -12,6 +40,9 @@ function compiler_jhtmls(node, bindObjectName) {
     if (!node.tag) {
         return;
     }
+    if (!node.attrs || !node.attrs.length) {
+        return;
+    }
     if (node.tag === ':template') {
         node.attrs.some(function (attr) {
             if (attr.name === 'name') {
@@ -19,9 +50,6 @@ function compiler_jhtmls(node, bindObjectName) {
                 return true;
             }
         });
-        return;
-    }
-    if (!node.attrs || !node.attrs.length) {
         return;
     }
     var varintAttrs = "" + indent + inserFlag + "var _attrs_ = [\n";

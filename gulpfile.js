@@ -29,9 +29,10 @@ global.compiler_jhtmls = require('../src/js/Compiler/jhtmls').compiler_jhtmls;
       `
     }))
     .pipe(rename({
-      extname: '.js'
+      dirname: './',
+      extname: '.js',
     }))
-    .pipe(gulp.dest('test'))
+    .pipe(gulp.dest('./test'))
 })
 
 gulp.task('open', function() {

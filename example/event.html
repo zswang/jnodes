@@ -249,7 +249,7 @@
     }
   }
 
-  function scopeLife(type) {
+  function lifecycle(type) {
     return function (scope) {
       if (!scope.lifecycle) {
         return;
@@ -272,8 +272,8 @@
     }
   }
   var binder = new jnodes.Binder({
-    onScopeCreate: scopeLife('create'),
-    onScopeDestroy: scopeLife('destroy'),
+    onScopeCreate: lifecycle('create'),
+    onScopeDestroy: lifecycle('destroy'),
   });
 
   jnodes.bind = function () {

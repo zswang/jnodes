@@ -2,6 +2,7 @@
 global.jnodes = require('../jnodes.js');
 global.ejs = require('ejs');
 global.jhtmls = require('jhtmls');
+global.compiler_jhtmls = require('../src/js/Compiler/jhtmls').compiler_jhtmls;
       
 
 describe("src/ts/Compiler/jhtmls.ts", function () {

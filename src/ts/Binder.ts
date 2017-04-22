@@ -191,12 +191,36 @@ let guid: number = 0
 
   console.log(JSON.stringify(element));
   // > {"outerHTML":"<div></div>"}
+
+  console.log(JSON.stringify(binder.scope('none')));
+  // > undefined
+  console.log(JSON.stringify(binder.templateCompiler('none')));
+  // > undefined
+  console.log(JSON.stringify(binder.templateRender('none')));
+  // > undefined
+  console.log(JSON.stringify(binder._attrsRender(rootScope)));
+  // > ""
+  var scope = {
+    children: [{
+      model: {
+        $$binds: []
+      }
+    }]
+  };
+  binder.cleanChildren(scope);
+  var scope = {
+    children: [{
+      model: {}
+    }]
+  };
+  binder.cleanChildren(scope);
   ```
  * @example bind():bind jhtmls
   ```html
   <div>
     <script type="text/jhtmls">
-    <ul :bind="books">
+    <h1 :class="{book: Math.random() > 0.5}">Books</h1>
+    <ul :bind="books" @create="books.loaded = 'done'">
     books.forEach(function (book) {
       <li :bind="book">
         <:template name="book"/>
@@ -210,10 +234,7 @@ let guid: number = 0
   </script>
   ```
   ```js
-  var binder = new jnodes.Binder({
-    onScopeCreate: function () {},
-    onScopeDestroy: function () {},
-  });
+  var binder = new jnodes.Binder();
   jnodes.bind = function () {
     return binder.bind.apply(binder, arguments);
   };
@@ -248,6 +269,10 @@ let guid: number = 0
   console.log(div.querySelector('ul li a').innerHTML);
   // > Star Wars
 
+  books[0].title = 'Jane Eyre';
+  console.log(div.querySelector('ul li a').innerHTML);
+  // > Jane Eyre
+
   console.log(binder.scope(div) === rootScope);
   // > true
 
@@ -262,11 +287,11 @@ let guid: number = 0
   ```html
   <div>
     <script type="text/jhtmls">
-    <ul :bind="books">
+    <ul :bind="books" :data-length="books.length" @create="books.loaded = 'done'" class="books">
     books.forEach(function (book) {
-      <li :bind="book">
+      <li :bind="book" @click="book.star = !book.star" class="" :class="{star: book.star}">
         <a :href="'/' + book.id" :bind="book.title">#{book.title}</a>
-        <span :bind="book.id">#{book.id}</span>
+        <span :bind="book.id" :data-star="book.star">#{book.id}</span>
       </li>
     });
     </ul>
@@ -274,14 +299,40 @@ let guid: number = 0
   </div>
   ```
   ```js
-  var binder = new jnodes.Binder();
+  function lifecycle(type) {
+    return function (scope) {
+      if (!scope.lifecycle) {
+        return;
+      }
+      var element = binder.element(scope);
+      if (element) {
+        var elements;
+        if (element.getAttribute('data-' + binder._bindObjectName + '-event-' + type)) {
+          elements = [element];
+        } else {
+          elements = [];
+        }
+        [].push.apply(elements, element.querySelectorAll('[data-' + binder._bindObjectName + '-event-' + type + ']'));
+        elements.forEach(function(item) {
+          var e = { type: type };
+          triggerScopeEvent(e, item);
+          item.removeAttribute('data-' + binder._bindObjectName + '-event-' + type);
+        });
+      }
+    }
+  }
+  var binder = new jnodes.Binder({
+    onScopeCreate: lifecycle('create'),
+    onScopeDestroy: lifecycle('destroy'),
+  });
+
   jnodes.bind = function () {
     return binder.bind.apply(binder, arguments);
   };
   jnodes.templateRender = function () {
     return binder.templateRender.apply(binder, arguments);
   };
-  var books = [{id: 1, title: 'book1'}, {id: 2, title: 'book2'}, {id: 3, title: 'book3'}];
+  var books = [{id: 1, title: 'book1', star: false}, {id: 2, title: 'book2', star: false}, {id: 3, title: 'book3', star: false}];
   binder.registerCompiler('jhtmls', function (templateCode, bindObjectName) {
     var node = jnodes.Parser.parse(templateCode);
     var code = jnodes.Parser.build(node, bindObjectName, compiler_jhtmls);
@@ -292,9 +343,11 @@ let guid: number = 0
   div.innerHTML = binder.templateCompiler('jhtmls', div.querySelector('script').innerHTML)({
     books: books
   });
-  console.info(div.innerHTML);
   var rootScope = jnodes.bind.$$scope;
   rootScope.element = div;
+
+  console.log(books.loaded);
+  // > done
 
   console.log(JSON.stringify(binder.scope(div.querySelector('ul li a')).model));
   // > "book1"
@@ -305,6 +358,75 @@ let guid: number = 0
   books.shift();
   console.log(JSON.stringify(binder.scope(div.querySelector('ul li a')).model));
   // > "book2"
+
+  function findEventTarget(parent, target, selector) {
+    var elements = [].slice.call(parent.querySelectorAll(selector));
+    while (target && elements.indexOf(target) < 0) {
+      target = target.parentNode;
+    }
+    return target;
+  }
+
+  function triggerScopeEvent(event, target) {
+    target = target || event.target;
+    var cmd = target.getAttribute('data-jnodes-event-' + event.type);
+    if (cmd && cmd[0] === '@') {
+      var scope = binder.scope(target);
+      var method = (scope.methods || {})[cmd]
+      if (method) {
+        method.call(target, event);
+      }
+    }
+  }
+
+  ['click'].forEach(function (eventName) {
+    document.addEventListener(eventName, function (e) {
+      if (e.target.getAttribute('data-jnodes-event-input')) {
+        if (eventName === 'focusin') {
+          e.target.addEventListener('input', triggerScopeEvent)
+        } else if (eventName === 'focusout') {
+          e.target.removeEventListener('input', triggerScopeEvent)
+        }
+      }
+
+      var target = findEventTarget(document, e.target, '[data-jnodes-event-' + eventName + ']');
+      if (!target) {
+        return;
+      }
+      triggerScopeEvent(e, target);
+    })
+  });
+
+  var li = div.querySelector('ul li');
+  li.click();
+
+  var li = div.querySelector('ul li');
+  console.log(li.className);
+  // > star
+  ```
+ * @example bind():base
+  ```js
+  var data = {x: 1, y: 2};
+  var binder = new jnodes.Binder();
+  var scope = binder.bind(data, null, null);
+  var element = {};
+  global.document = { querySelector: function(selector) {
+    return element;
+  } };
+  binder.update(scope);
+  console.log(JSON.stringify(element));
+  // > {}
+
+  var scope = binder.bind(data, null, null, function (output) {
+    output.push('<div></div>');
+  });
+  var element = {};
+  global.document = { querySelector: function(selector) {
+    return element;
+  } };
+  binder.update(scope);
+  console.log(JSON.stringify(element));
+  // > {"innerHTML":"<div></div>"}
   ```
    */
 class Binder {
