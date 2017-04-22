@@ -210,7 +210,7 @@ var guid = 0;
   ```html
   <div>
     <script type="text/jhtmls">
-    <h1 class="box">Books</h1>
+    <h1 :class="{book: Math.random() > 0.5}">Books</h1>
     <ul :bind="books" @create="books.loaded = 'done'">
     books.forEach(function (book) {
       <li :bind="book">

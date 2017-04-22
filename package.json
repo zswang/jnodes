@@ -1,10 +1,10 @@
 {
   "name": "jnodes",
-  "version": "0.0.10",
+  "version": "0.0.12",
   "main": "jnodes.js",
   "scripts": {
     "_update_version": "node version.js",
-    "dist": "npm run _update_version && gulp dist",
+    "dist": "npm run _update_version && gulp dist example && npm run test",
     "lint": "jshint src/*.js",
     "example": "gulp example",
     "debug": "gulp debug",
