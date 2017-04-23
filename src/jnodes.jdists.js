@@ -1,7 +1,6 @@
 (function (exportName) {
 /*<jdists encoding="fndep,regex" import="./js/Binder.js" depend="Binder"
     pattern="/Observer_\d+\./g" replacement=""/>*/
-
 /*<jdists encoding="fndep" import="./js/Observer.js" depend="Observer"/>*/
 /*<jdists encoding="fndep" import="./js/Parser.js" depend="Parser"/>*/
   var exports = {

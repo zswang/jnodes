@@ -2,7 +2,10 @@
 global.jnodes = require('../jnodes.js');
 global.ejs = require('ejs');
 global.jhtmls = require('jhtmls');
+global.art = require('art-template/lib/template-web');
 global.compiler_jhtmls = require('../src/js/Compiler/jhtmls').compiler_jhtmls;
+global.compiler_ejs = require('../src/js/Compiler/ejs').compiler_ejs;
+global.compiler_art = require('../src/js/Compiler/art').compiler_art;
       
 
 describe("src/ts/Binder.ts", function () {
@@ -17,11 +20,11 @@ describe("src/ts/Binder.ts", function () {
 
   it("bind():base", function () {
     examplejs_printLines = [];
-  var binder = new jnodes.Binder();
+  jnodes.binder = new jnodes.Binder();
   var data = {x: 1, y: 2};
   var rootScope = {};
   var count = 0;
-  binder.bind(data, rootScope, function (output) {
+  jnodes.binder.bind(data, rootScope, function (output) {
     output.push('<div></div>');
     count++;
   });
@@ -44,13 +47,13 @@ describe("src/ts/Binder.ts", function () {
   examplejs_print(JSON.stringify(element));
   assert.equal(examplejs_printLines.join("\n"), "{\"outerHTML\":\"<div></div>\"}"); examplejs_printLines = [];
 
-  examplejs_print(JSON.stringify(binder.scope('none')));
+  examplejs_print(JSON.stringify(jnodes.binder.scope('none')));
   assert.equal(examplejs_printLines.join("\n"), "undefined"); examplejs_printLines = [];
-  examplejs_print(JSON.stringify(binder.templateCompiler('none')));
+  examplejs_print(JSON.stringify(jnodes.binder.templateCompiler('none')));
   assert.equal(examplejs_printLines.join("\n"), "undefined"); examplejs_printLines = [];
-  examplejs_print(JSON.stringify(binder.templateRender('none')));
+  examplejs_print(JSON.stringify(jnodes.binder.templateRender('none')));
   assert.equal(examplejs_printLines.join("\n"), "undefined"); examplejs_printLines = [];
-  examplejs_print(JSON.stringify(binder._attrsRender(rootScope)));
+  examplejs_print(JSON.stringify(jnodes.binder._attrsRender(rootScope)));
   assert.equal(examplejs_printLines.join("\n"), "\"\""); examplejs_printLines = [];
   var scope = {
     children: [{
@@ -59,13 +62,13 @@ describe("src/ts/Binder.ts", function () {
       }
     }]
   };
-  binder.cleanChildren(scope);
+  jnodes.binder.cleanChildren(scope);
   var scope = {
     children: [{
       model: {}
     }]
   };
-  binder.cleanChildren(scope);
+  jnodes.binder.cleanChildren(scope);
   });
           
   it("jsdom@bind():bind jhtmls", function (done) {
@@ -90,28 +93,22 @@ describe("src/ts/Binder.ts", function () {
           
   it("bind():bind jhtmls", function () {
     examplejs_printLines = [];
-  var binder = new jnodes.Binder();
-  jnodes.bind = function () {
-    return binder.bind.apply(binder, arguments);
-  };
-  jnodes.templateRender = function () {
-    return binder.templateRender.apply(binder, arguments);
-  };
+  jnodes.binder = new jnodes.Binder();
   var books = [{id: 1, title: 'book1'}, {id: 2, title: 'book2'}, {id: 3, title: 'book3'}];
-  binder.registerCompiler('jhtmls', function (templateCode, bindObjectName) {
+  jnodes.binder.registerCompiler('jhtmls', function (templateCode, bindObjectName) {
     var node = jnodes.Parser.parse(templateCode);
     var code = jnodes.Parser.build(node, bindObjectName, compiler_jhtmls);
     return jhtmls.render(code);
   });
-  var bookRender = binder.templateCompiler('jhtmls', document.querySelector('#book').innerHTML);
-  binder.registerTemplate('book', function (scope) {
+  var bookRender = jnodes.binder.templateCompiler('jhtmls', document.querySelector('#book').innerHTML);
+  jnodes.binder.registerTemplate('book', function (scope) {
     return bookRender(scope.model);
   });
   var div = document.querySelector('div');
-  div.innerHTML = binder.templateCompiler('jhtmls', div.querySelector('script').innerHTML)({
+  div.innerHTML = jnodes.binder.templateCompiler('jhtmls', div.querySelector('script').innerHTML)({
     books: books
   });
-  var rootScope = jnodes.bind.$$scope;
+  var rootScope = jnodes.binder.$$scope;
   rootScope.element = null;
   rootScope.element = div;
 
@@ -129,14 +126,14 @@ describe("src/ts/Binder.ts", function () {
   examplejs_print(div.querySelector('ul li a').innerHTML);
   assert.equal(examplejs_printLines.join("\n"), "Jane Eyre"); examplejs_printLines = [];
 
-  examplejs_print(binder.scope(div) === rootScope);
+  examplejs_print(jnodes.binder.scope(div) === rootScope);
   assert.equal(examplejs_printLines.join("\n"), "true"); examplejs_printLines = [];
 
-  examplejs_print(binder.scope(div.querySelector('ul li a')).model.id === 1);
+  examplejs_print(jnodes.binder.scope(div.querySelector('ul li a')).model.id === 1);
   assert.equal(examplejs_printLines.join("\n"), "true"); examplejs_printLines = [];
 
   books.shift();
-  examplejs_print(binder.scope(div.querySelector('ul li a')).model.id === 2);
+  examplejs_print(jnodes.binder.scope(div.querySelector('ul li a')).model.id === 2);
   assert.equal(examplejs_printLines.join("\n"), "true"); examplejs_printLines = [];
   });
           
@@ -167,59 +164,53 @@ describe("src/ts/Binder.ts", function () {
       if (!scope.lifecycle) {
         return;
       }
-      var element = binder.element(scope);
+      var element = jnodes.binder.element(scope);
       if (element) {
         var elements;
-        if (element.getAttribute('data-' + binder._bindObjectName + '-event-' + type)) {
+        if (element.getAttribute(jnodes.binder.eventAttributePrefix + type)) {
           elements = [element];
         } else {
           elements = [];
         }
-        [].push.apply(elements, element.querySelectorAll('[data-' + binder._bindObjectName + '-event-' + type + ']'));
+        [].push.apply(elements, element.querySelectorAll('[' + jnodes.binder.eventAttributePrefix + type + ']'));
         elements.forEach(function(item) {
           var e = { type: type };
           triggerScopeEvent(e, item);
-          item.removeAttribute('data-' + binder._bindObjectName + '-event-' + type);
+          item.removeAttribute(jnodes.binder.eventAttributePrefix + type);
         });
       }
     }
   }
-  var binder = new jnodes.Binder({
+  jnodes.binder = new jnodes.Binder({
     onScopeCreate: lifecycle('create'),
     onScopeDestroy: lifecycle('destroy'),
   });
 
-  jnodes.bind = function () {
-    return binder.bind.apply(binder, arguments);
-  };
-  jnodes.templateRender = function () {
-    return binder.templateRender.apply(binder, arguments);
-  };
   var books = [{id: 1, title: 'book1', star: false}, {id: 2, title: 'book2', star: false}, {id: 3, title: 'book3', star: false}];
-  binder.registerCompiler('jhtmls', function (templateCode, bindObjectName) {
+  jnodes.binder.registerCompiler('jhtmls', function (templateCode, bindObjectName) {
     var node = jnodes.Parser.parse(templateCode);
     var code = jnodes.Parser.build(node, bindObjectName, compiler_jhtmls);
     return jhtmls.render(code);
   });
 
   var div = document.querySelector('div');
-  div.innerHTML = binder.templateCompiler('jhtmls', div.querySelector('script').innerHTML)({
+  div.innerHTML = jnodes.binder.templateCompiler('jhtmls', div.querySelector('script').innerHTML)({
     books: books
   });
-  var rootScope = jnodes.bind.$$scope;
+  var rootScope = jnodes.binder.$$scope;
   rootScope.element = div;
 
   examplejs_print(books.loaded);
   assert.equal(examplejs_printLines.join("\n"), "done"); examplejs_printLines = [];
 
-  examplejs_print(JSON.stringify(binder.scope(div.querySelector('ul li a')).model));
+  examplejs_print(JSON.stringify(jnodes.binder.scope(div.querySelector('ul li a')).model));
   assert.equal(examplejs_printLines.join("\n"), "\"book1\""); examplejs_printLines = [];
 
-  examplejs_print(JSON.stringify(binder.scope(div.querySelector('ul li span')).model));
+  examplejs_print(JSON.stringify(jnodes.binder.scope(div.querySelector('ul li span')).model));
   assert.equal(examplejs_printLines.join("\n"), "1"); examplejs_printLines = [];
 
   books.shift();
-  examplejs_print(JSON.stringify(binder.scope(div.querySelector('ul li a')).model));
+  examplejs_print(JSON.stringify(jnodes.binder.scope(div.querySelector('ul li a')).model));
   assert.equal(examplejs_printLines.join("\n"), "\"book2\""); examplejs_printLines = [];
 
   function findEventTarget(parent, target, selector) {
@@ -234,7 +225,7 @@ describe("src/ts/Binder.ts", function () {
     target = target || event.target;
     var cmd = target.getAttribute('data-jnodes-event-' + event.type);
     if (cmd && cmd[0] === '@') {
-      var scope = binder.scope(target);
+      var scope = jnodes.binder.scope(target);
       var method = (scope.methods || {})[cmd]
       if (method) {
         method.call(target, event);

@@ -15,7 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
   console.log(JSON.stringify(node));
   // > {"tag":":template"}
   ```
- * @example compiler_jhtmls:base
+ * @example compiler_jhtmls:base2
   ```js
   var node = {
     tag: ':template',
@@ -34,7 +34,7 @@ function compiler_jhtmls(node, bindObjectName) {
     var inserFlag = "/***/ ";
     if (node.type === 'root') {
         node.beforebegin = "" + indent + inserFlag + "var _rootScope_ = " + bindObjectName + ".bind(this, { root: true }, null, function (_output_, _scope_) {";
-        node.afterend = "\n" + indent + inserFlag + "}); _rootScope_.innerRender(_output_); " + bindObjectName + ".bind.$$scope = _rootScope_;";
+        node.afterend = "\n" + indent + inserFlag + "}); _rootScope_.innerRender(_output_); " + bindObjectName + ".$$scope = _rootScope_;";
         return;
     }
     if (!node.tag) {
@@ -65,7 +65,7 @@ function compiler_jhtmls(node, bindObjectName) {
             value = attr.value;
         }
         else if (attr.name[0] === '@') {
-            value = "function (event) { with (_scope_.import || {}) { " + attr.value + " }}";
+            value = "function (event) { with (" + bindObjectName + "._imports || {}) { " + attr.value + " }}";
         }
         else {
             value = JSON.stringify(attr.value);
@@ -84,6 +84,6 @@ function compiler_jhtmls(node, bindObjectName) {
     }
     varintAttrs += "" + indent + inserFlag + "];\n";
     node.beforebegin += varintAttrs;
-    node.overwriteAttrs = '!#{_scope_.attrsRender(_scope_, _attrs_)}';
+    node.overwriteAttrs = "!#{" + bindObjectName + ".attrsRender(_scope_, _attrs_)}";
 } /*</function>*/
 exports.compiler_jhtmls = compiler_jhtmls;

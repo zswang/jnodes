@@ -25,7 +25,10 @@ gulp.task('example', function() {
 global.jnodes = require('../jnodes.js');
 global.ejs = require('ejs');
 global.jhtmls = require('jhtmls');
+global.art = require('art-template/lib/template-web');
 global.compiler_jhtmls = require('../src/js/Compiler/jhtmls').compiler_jhtmls;
+global.compiler_ejs = require('../src/js/Compiler/ejs').compiler_ejs;
+global.compiler_art = require('../src/js/Compiler/art').compiler_art;
       `
     }))
     .pipe(rename({

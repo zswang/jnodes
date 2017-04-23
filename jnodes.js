@@ -160,11 +160,11 @@ var guid = 0;
 /**
  * @example bind():base
   ```js
-  var binder = new jnodes.Binder();
+  jnodes.binder = new jnodes.Binder();
   var data = {x: 1, y: 2};
   var rootScope = {};
   var count = 0;
-  binder.bind(data, rootScope, function (output) {
+  jnodes.binder.bind(data, rootScope, function (output) {
     output.push('<div></div>');
     count++;
   });
@@ -183,13 +183,13 @@ var guid = 0;
   // > 1
   console.log(JSON.stringify(element));
   // > {"outerHTML":"<div></div>"}
-  console.log(JSON.stringify(binder.scope('none')));
+  console.log(JSON.stringify(jnodes.binder.scope('none')));
   // > undefined
-  console.log(JSON.stringify(binder.templateCompiler('none')));
+  console.log(JSON.stringify(jnodes.binder.templateCompiler('none')));
   // > undefined
-  console.log(JSON.stringify(binder.templateRender('none')));
+  console.log(JSON.stringify(jnodes.binder.templateRender('none')));
   // > undefined
-  console.log(JSON.stringify(binder._attrsRender(rootScope)));
+  console.log(JSON.stringify(jnodes.binder._attrsRender(rootScope)));
   // > ""
   var scope = {
     children: [{
@@ -198,13 +198,13 @@ var guid = 0;
       }
     }]
   };
-  binder.cleanChildren(scope);
+  jnodes.binder.cleanChildren(scope);
   var scope = {
     children: [{
       model: {}
     }]
   };
-  binder.cleanChildren(scope);
+  jnodes.binder.cleanChildren(scope);
   ```
  * @example bind():bind jhtmls
   ```html
@@ -225,28 +225,22 @@ var guid = 0;
   </script>
   ```
   ```js
-  var binder = new jnodes.Binder();
-  jnodes.bind = function () {
-    return binder.bind.apply(binder, arguments);
-  };
-  jnodes.templateRender = function () {
-    return binder.templateRender.apply(binder, arguments);
-  };
+  jnodes.binder = new jnodes.Binder();
   var books = [{id: 1, title: 'book1'}, {id: 2, title: 'book2'}, {id: 3, title: 'book3'}];
-  binder.registerCompiler('jhtmls', function (templateCode, bindObjectName) {
+  jnodes.binder.registerCompiler('jhtmls', function (templateCode, bindObjectName) {
     var node = jnodes.Parser.parse(templateCode);
     var code = jnodes.Parser.build(node, bindObjectName, compiler_jhtmls);
     return jhtmls.render(code);
   });
-  var bookRender = binder.templateCompiler('jhtmls', document.querySelector('#book').innerHTML);
-  binder.registerTemplate('book', function (scope) {
+  var bookRender = jnodes.binder.templateCompiler('jhtmls', document.querySelector('#book').innerHTML);
+  jnodes.binder.registerTemplate('book', function (scope) {
     return bookRender(scope.model);
   });
   var div = document.querySelector('div');
-  div.innerHTML = binder.templateCompiler('jhtmls', div.querySelector('script').innerHTML)({
+  div.innerHTML = jnodes.binder.templateCompiler('jhtmls', div.querySelector('script').innerHTML)({
     books: books
   });
-  var rootScope = jnodes.bind.$$scope;
+  var rootScope = jnodes.binder.$$scope;
   rootScope.element = null;
   rootScope.element = div;
   console.log(rootScope.element === div);
@@ -259,12 +253,12 @@ var guid = 0;
   books[0].title = 'Jane Eyre';
   console.log(div.querySelector('ul li a').innerHTML);
   // > Jane Eyre
-  console.log(binder.scope(div) === rootScope);
+  console.log(jnodes.binder.scope(div) === rootScope);
   // > true
-  console.log(binder.scope(div.querySelector('ul li a')).model.id === 1);
+  console.log(jnodes.binder.scope(div.querySelector('ul li a')).model.id === 1);
   // > true
   books.shift();
-  console.log(binder.scope(div.querySelector('ul li a')).model.id === 2);
+  console.log(jnodes.binder.scope(div.querySelector('ul li a')).model.id === 2);
   // > true
   ```
  * @example bind():bind jhtmls 2
@@ -288,53 +282,47 @@ var guid = 0;
       if (!scope.lifecycle) {
         return;
       }
-      var element = binder.element(scope);
+      var element = jnodes.binder.element(scope);
       if (element) {
         var elements;
-        if (element.getAttribute('data-' + binder._bindObjectName + '-event-' + type)) {
+        if (element.getAttribute(jnodes.binder.eventAttributePrefix + type)) {
           elements = [element];
         } else {
           elements = [];
         }
-        [].push.apply(elements, element.querySelectorAll('[data-' + binder._bindObjectName + '-event-' + type + ']'));
+        [].push.apply(elements, element.querySelectorAll('[' + jnodes.binder.eventAttributePrefix + type + ']'));
         elements.forEach(function(item) {
           var e = { type: type };
           triggerScopeEvent(e, item);
-          item.removeAttribute('data-' + binder._bindObjectName + '-event-' + type);
+          item.removeAttribute(jnodes.binder.eventAttributePrefix + type);
         });
       }
     }
   }
-  var binder = new jnodes.Binder({
+  jnodes.binder = new jnodes.Binder({
     onScopeCreate: lifecycle('create'),
     onScopeDestroy: lifecycle('destroy'),
   });
-  jnodes.bind = function () {
-    return binder.bind.apply(binder, arguments);
-  };
-  jnodes.templateRender = function () {
-    return binder.templateRender.apply(binder, arguments);
-  };
   var books = [{id: 1, title: 'book1', star: false}, {id: 2, title: 'book2', star: false}, {id: 3, title: 'book3', star: false}];
-  binder.registerCompiler('jhtmls', function (templateCode, bindObjectName) {
+  jnodes.binder.registerCompiler('jhtmls', function (templateCode, bindObjectName) {
     var node = jnodes.Parser.parse(templateCode);
     var code = jnodes.Parser.build(node, bindObjectName, compiler_jhtmls);
     return jhtmls.render(code);
   });
   var div = document.querySelector('div');
-  div.innerHTML = binder.templateCompiler('jhtmls', div.querySelector('script').innerHTML)({
+  div.innerHTML = jnodes.binder.templateCompiler('jhtmls', div.querySelector('script').innerHTML)({
     books: books
   });
-  var rootScope = jnodes.bind.$$scope;
+  var rootScope = jnodes.binder.$$scope;
   rootScope.element = div;
   console.log(books.loaded);
   // > done
-  console.log(JSON.stringify(binder.scope(div.querySelector('ul li a')).model));
+  console.log(JSON.stringify(jnodes.binder.scope(div.querySelector('ul li a')).model));
   // > "book1"
-  console.log(JSON.stringify(binder.scope(div.querySelector('ul li span')).model));
+  console.log(JSON.stringify(jnodes.binder.scope(div.querySelector('ul li span')).model));
   // > 1
   books.shift();
-  console.log(JSON.stringify(binder.scope(div.querySelector('ul li a')).model));
+  console.log(JSON.stringify(jnodes.binder.scope(div.querySelector('ul li a')).model));
   // > "book2"
   function findEventTarget(parent, target, selector) {
     var elements = [].slice.call(parent.querySelectorAll(selector));
@@ -347,7 +335,7 @@ var guid = 0;
     target = target || event.target;
     var cmd = target.getAttribute('data-jnodes-event-' + event.type);
     if (cmd && cmd[0] === '@') {
-      var scope = binder.scope(target);
+      var scope = jnodes.binder.scope(target);
       var method = (scope.methods || {})[cmd]
       if (method) {
         method.call(target, event);
@@ -406,17 +394,18 @@ var Binder = (function () {
         options = options || {};
         this._binds = {};
         this._templates = {};
-        this._bindObjectName = options.bindObjectName || 'jnodes';
+        this._bindObjectName = options.bindObjectName || 'jnodes.binder';
         this._bindAttributeName = options.bindAttributeName || 'bind';
-        this._scopeAttributeName = options.scopeAttributeName || "data-" + this._bindObjectName + "-scope";
-        this._eventAttributePrefix = options.eventAttributePrefix || "data-" + this._bindObjectName + "-event-";
+        this._scopeAttributeName = options.scopeAttributeName || "data-jnodes-scope";
+        this._eventAttributePrefix = options.eventAttributePrefix || "data-jnodes-event-";
         this._onScopeCreate = options.onScopeCreate;
         this._onScopeDestroy = options.onScopeDestroy;
+        this._imports = options.imports;
         this._templates = {};
         this._compiler = {};
         this._newScopes = [];
         this._findElement = options.findElement || (function (scope) {
-            return document.querySelector("[" + scope.scopeAttributeName + "=\"" + scope.id + "\"]");
+            return document.querySelector("[" + _this._scopeAttributeName + "=\"" + scope.id + "\"]");
         });
         this._updateElement = options.updateElement || (function (element, scope) {
             if (!element || (!scope.outerRender && !scope.innerRender)) {
@@ -465,19 +454,19 @@ var Binder = (function () {
                 }
                 var name = attr.name.slice(1);
                 var values = [];
-                if (name === scope.bindAttributeName) {
-                    name = scope.scopeAttributeName;
+                if (name === _this._bindAttributeName) {
+                    name = _this._scopeAttributeName;
                     values.push(scope.id);
                 }
-                else if (scope.eventAttributePrefix && '@' === attr.name[0]) {
+                else if (_this._eventAttributePrefix && '@' === attr.name[0]) {
                     if (name === 'create' || name === 'destroy') {
                         scope.lifecycle = true;
                     }
-                    name = scope.eventAttributePrefix + name;
+                    name = _this._eventAttributePrefix + name;
                 }
                 dictValues[name] = values;
                 dictQuoteds[name] = attr.quoted;
-                if (name === scope.scopeAttributeName) {
+                if (name === _this._scopeAttributeName) {
                     return;
                 }
                 if (attr.value === '' || attr.value === null || attr.value === undefined ||
@@ -521,6 +510,16 @@ var Binder = (function () {
             }).join(' ');
         });
     }
+    Object.defineProperty(Binder.prototype, "attrsRender", {
+        get: function () { return this._attrsRender; },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Binder.prototype, "eventAttributePrefix", {
+        get: function () { return this._eventAttributePrefix; },
+        enumerable: true,
+        configurable: true
+    });
     Binder.prototype.registerTemplate = function (templateName, render) {
         this._templates[templateName] = render;
     };
@@ -574,12 +573,6 @@ var Binder = (function () {
         var scope = {
             model: model,
             parent: parent,
-            bindAttributeName: this._bindAttributeName,
-            scopeAttributeName: this._scopeAttributeName,
-            bindObjectName: this._bindObjectName,
-            templateRender: this.templateRender,
-            attrsRender: this._attrsRender,
-            eventAttributePrefix: this._eventAttributePrefix,
         };
         this._newScopes.push(scope);
         Object.defineProperty(scope, 'element', {
@@ -591,7 +584,7 @@ var Binder = (function () {
             set: function (value) {
                 scope._element = value;
                 if (value) {
-                    value.setAttribute(scope.scopeAttributeName, scope.id);
+                    value.setAttribute(_this._scopeAttributeName, scope.id);
                     if (_this._onScopeCreate) {
                         _this._newScopes.forEach(function (scope) {
                             _this._onScopeCreate(scope);
@@ -653,7 +646,9 @@ var Binder = (function () {
         return scope._element || this._findElement(scope);
     };
     /**
-     * update
+     * 更新数据对应的元素
+     *
+     * @param scope 作用域
      */
     Binder.prototype.update = function (scope) {
         delete scope.methods;
@@ -681,6 +676,23 @@ var Binder = (function () {
                     return result;
                 }
                 element = element.parentNode;
+            }
+        }
+    };
+    /**
+     * 触发作用域事件
+     *
+     * @param event 事件对象
+     * @param target 元素
+     */
+    Binder.prototype.triggerScopeEvent = function (event, target) {
+        target = target || event.target;
+        var cmd = target.getAttribute(this._eventAttributePrefix + event.type);
+        if (cmd && cmd[0] === '@') {
+            var scope = this.scope(target);
+            var method = (scope.methods || {})[cmd];
+            if (method) {
+                method.call(target, event);
             }
         }
     };
