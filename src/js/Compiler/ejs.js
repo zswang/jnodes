@@ -186,6 +186,19 @@ Object.defineProperty(exports, "__esModule", { value: true });
   console.log(JSON.stringify(node));
   // > {"tag":":template","attrs":[{"name":"class","value":"book"}]}
   ```
+ * @example compiler_ejs:base5
+  ```js
+  var node = {
+    tag: 'span',
+    attrs: [{
+      name: 'class',
+      value: 'book',
+    }]
+  };
+  compiler_ejs(node);
+  console.log(JSON.stringify(node));
+  // > {"tag":"span","attrs":[{"name":"class","value":"book"}]}
+  ```
    */
 function compiler_ejs(node, bindObjectName) {
     var indent = node.indent || '';
@@ -223,6 +236,7 @@ function compiler_ejs(node, bindObjectName) {
         }
         else if (attr.name[0] === '@') {
             value = "function (event) { with (" + bindObjectName + "._imports || {}) { " + attr.value + " }}";
+            hasOverwriteAttr = true;
         }
         else {
             value = JSON.stringify(attr.value);

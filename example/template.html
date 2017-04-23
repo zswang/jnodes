@@ -33,7 +33,7 @@
       </ul>
       </script-->
       <script type="text/jhtmls">
-/***/ var _rootScope_ = jnodes.bind(this, { root: true }, null, function (_output_, _scope_) {
+/***/ var _rootScope_ = jnodes.binder.bind(this, { root: true }, null, function (_output_, _scope_) {
       <div>
         <button cmd="remove">remove</button>
         function _sort() {
@@ -46,25 +46,25 @@
 /***/     'name': ':cmd',
 /***/     'value': _sort,
 /***/   }];
-        <button !#{_scope_.attrsRender(_scope_, attrs)}>sort</button>
+        <button !#{jnodes.binder.attrsRender(_scope_, attrs)}>sort</button>
       </div>
-/***/   jnodes.bind(books, _scope_, function (_output_, _scope_, holdInner) {
+/***/   jnodes.binder.bind(books, _scope_, function (_output_, _scope_, holdInner) {
 /***/     var attrs = [
 /***/       { name: ":bind", value: books, quoted: '"'},
 /***/     ];
-      <ul !#{_scope_.attrsRender(_scope_, attrs)}>
+      <ul !#{jnodes.binder.attrsRender(_scope_, attrs)}>
 /***/     _scope_.innerRender = function(_output_) {
       books.forEach(function (book) {
-/***/       jnodes.bind(book, _scope_, function (_output_, _scope_, holdInner) {
+/***/       jnodes.binder.bind(book, _scope_, function (_output_, _scope_, holdInner) {
 /***/         var attrs = [
 /***/           { name: ":bind", value: book, quoted: '"'},
 /***/           { name: "class", value: "book", quoted: '"'},
 /***/           { name: ":class", value: { star: book.star }, quoted: '"' },
 /***/         ];
-        <li !#{_scope_.attrsRender(_scope_, attrs)}>
+        <li !#{jnodes.binder.attrsRender(_scope_, attrs)}>
 /***/         _scope_.innerRender = function(_output_) {
           #{book.title}
-/***/           _output_.push(jnodes.templateRender('button', _scope_, jnodes.bind));
+/***/           _output_.push(jnodes.binder.templateRender('button', _scope_, jnodes.bind));
 /***/         };
 /***/         if (holdInner) {
 /***/           _scope_.innerRender(_output_)
@@ -80,7 +80,7 @@
 /***/   }).outerRender(_output_, true);
 /***/ });
 /***/ _rootScope_.innerRender(_output_);
-/***/ jnodes.bind.$$scope = _rootScope_;
+/***/ jnodes.binder.$$scope = _rootScope_;
       </script>
     </div>
 
@@ -93,7 +93,7 @@
     </script-->
     <script type="text/ejs" id="book">
     <%
-/***/ var _rootScope_ = jnodes.bind(locals, { root: true }, null, function (__output, _scope_) {
+/***/ var _rootScope_ = jnodes.binder.bind(locals, { root: true }, null, function (__output, _scope_) {
 /***/   var __append = __output.push.bind(__output);
     %>
     <% if (star) { %>
@@ -104,7 +104,7 @@
     <%
 /***/ });
 /***/ _rootScope_.innerRender(__output);
-/***/ jnodes.bind.$$scope = _rootScope_;
+/***/ jnodes.binder.$$scope = _rootScope_;
     %>
     </script>
 </body>
@@ -123,14 +123,7 @@
     books: books
   }
 
-  var binder = new jnodes.Binder();
-
-  jnodes.bind = function () {
-    return binder.bind.apply(binder, arguments);
-  };
-  jnodes.templateRender = function () {
-    return binder.templateRender.apply(binder, arguments);
-  }
+  var binder = jnodes.binder = new jnodes.Binder();
 
   // --
   var script = document.querySelector('#book');
@@ -144,7 +137,7 @@
   var script = document.querySelector('#books_jhtml script');
 
   element.innerHTML = jhtmls.render(script.innerHTML, rootData);
-  var rootScope_jhtmls = jnodes.bind.$$scope;
+  var rootScope_jhtmls = jnodes.binder.$$scope;
   rootScope_jhtmls.element = element;
 
   h5tap('body', 'button', function (element) {

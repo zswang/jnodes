@@ -1,6 +1,6 @@
 {
   "name": "jnodes",
-  "version": "0.0.17",
+  "version": "0.0.20",
   "main": "jnodes.js",
   "scripts": {
     "_update_version": "node version.js",

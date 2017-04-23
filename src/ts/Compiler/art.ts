@@ -268,6 +268,19 @@ import { H5Node } from "../Types"
   console.log(JSON.stringify(node));
   // > {"tag":":template","attrs":[{"name":"class","value":"book"}]}
   ```
+ * @example compiler_art:base5
+  ```js
+  var node = {
+    tag: 'span',
+    attrs: [{
+      name: 'class',
+      value: 'book',
+    }]
+  };
+  compiler_art(node);
+  console.log(JSON.stringify(node));
+  // > {"tag":"span","attrs":[{"name":"class","value":"book"}]}
+  ```
    */
 function compiler_art(node: H5Node, bindObjectName: string) {
   let indent = node.indent || ''
@@ -308,6 +321,7 @@ function compiler_art(node: H5Node, bindObjectName: string) {
       value = attr.value
     } else if (attr.name[0] === '@') {
       value = `function (event) { ${attr.value} }`
+      hasOverwriteAttr = true
     } else {
       value = JSON.stringify(attr.value)
     }

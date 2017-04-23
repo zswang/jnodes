@@ -47,62 +47,7 @@
 <script src="../node_modules/h5tap/h5tap.js"></script>
 <script src="../jnodes.js"></script>
 <script src="books.js"></script>
-<script>
-function compiler_jhtmls(node, bindObjectName) {
-    var indent = node.indent || '';
-    var inserFlag = "/***/ ";
-    if (node.type === 'root') {
-        node.beforebegin = "" + indent + inserFlag + "var _rootScope_ = " + bindObjectName + ".bind(this, { root: true }, null, function (_output_, _scope_) {";
-        node.afterend = "\n" + indent + inserFlag + "}); _rootScope_.innerRender(_output_); " + bindObjectName + ".bind.$$scope = _rootScope_;";
-        return;
-    }
-    if (!node.tag) {
-        return;
-    }
-    if (node.tag === ':template') {
-        node.attrs.some(function (attr) {
-            if (attr.name === 'name') {
-                node.overwriteNode = "\n" + indent + inserFlag + "_output_.push(" + bindObjectName + ".templateRender(" + JSON.stringify(attr.value) + ", _scope_, " + bindObjectName + ".bind));";
-                return true;
-            }
-        });
-        return;
-    }
-    if (!node.attrs || !node.attrs.length) {
-        return;
-    }
-    var varintAttrs = "" + indent + inserFlag + "var _attrs_ = [\n";
-    var hasOverwriteAttr;
-    var bindDataValue;
-    node.attrs.forEach(function (attr) {
-        var value;
-        if (attr.name[0] === ':') {
-            if (attr.name === ':bind') {
-                bindDataValue = attr.value;
-            }
-            hasOverwriteAttr = true;
-            value = attr.value;
-        }
-        else {
-            value = JSON.stringify(attr.value);
-        }
-        varintAttrs += "" + indent + inserFlag + "{ name: " + JSON.stringify(attr.name) + ", value: " + value + ", quoted: " + JSON.stringify(attr.quoted) + "},\n";
-    });
-    if (!hasOverwriteAttr) {
-        return;
-    }
-    node.beforebegin = '';
-    if (bindDataValue) {
-        node.beforebegin += "\n" + indent + inserFlag + bindObjectName + ".bind(" + bindDataValue + ", _scope_, function (_output_, _scope_, holdInner) {\n";
-        node.beforeend = "\n" + indent + inserFlag + "_scope_.innerRender = function(_output_) {\n";
-        node.afterbegin = "\n" + indent + inserFlag + "}; if (holdInner) { _scope_.innerRender(_output_); }\n";
-        node.afterend = "\n" + indent + inserFlag + "}).outerRender(_output_, true);\n";
-    }
-    varintAttrs += "" + indent + inserFlag + "];\n";
-    node.beforebegin += varintAttrs;
-    node.overwriteAttrs = '!#{_scope_.attrsRender(_scope_, _attrs_)}';
-} /*</function>*/
-</script>
+<script src="../src/js/Compiler/jhtmls.js"></script>
 <script>
 (function () {
   var rootData = {
@@ -112,11 +57,7 @@ function compiler_jhtmls(node, bindObjectName) {
     })
   }
 
-  var binder = new jnodes.Binder();
-
-  jnodes.bind = function () {
-    return binder.bind.apply(binder, arguments);
-  };
+  var binder = jnodes.binder = new jnodes.Binder();
 
   var element = document.querySelector('#books_jhtmls');
   var script = document.querySelector('#books_jhtmls script');
@@ -124,11 +65,11 @@ function compiler_jhtmls(node, bindObjectName) {
   // var compiler = new jnodes.Compiler();
   var root = jnodes.Parser.parse(script.innerHTML);
   var textarea = document.querySelector('textarea')
-  var template = jnodes.Parser.build(root, 'jnodes', compiler_jhtmls);
+  var template = jnodes.Parser.build(root, binder._bindObjectName, compiler_jhtmls);
   textarea.value = template;
   element.innerHTML = jhtmls.render(template, rootData);
 
-  jnodes.bind.$$scope.element = element;
+  jnodes.binder.$$scope.element = element;
 
   h5tap(element, 'button', function (element) {
     var scope = binder.scope(element);

@@ -66,6 +66,7 @@ function compiler_jhtmls(node, bindObjectName) {
         }
         else if (attr.name[0] === '@') {
             value = "function (event) { with (" + bindObjectName + "._imports || {}) { " + attr.value + " }}";
+            hasOverwriteAttr = true;
         }
         else {
             value = JSON.stringify(attr.value);

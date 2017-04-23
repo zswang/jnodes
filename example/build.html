@@ -72,11 +72,13 @@
     })
   }
 
-  var binder = new jnodes.Binder();
-
-  jnodes.bind = function () {
-    return binder.bind.apply(binder, arguments);
-  };
+  var binder = jnodes.binder = new jnodes.Binder({
+    imports: {
+      show: function (text) {
+        console.log('text: %s', text)
+      }
+    }
+  });
 
   var element = document.querySelector('#books_jhtml');
   var script = document.querySelector('#books_jhtml script');
@@ -84,11 +86,11 @@
   // var compiler = new jnodes.Compiler();
   var root = jnodes.Parser.parse(script.innerHTML);
   var textarea = document.querySelector('textarea')
-  var template = jnodes.Parser.build(root, 'jnodes.bind', function (node, bindFunctionName) {
+  var template = jnodes.Parser.build(root, binder._bindObjectName, function (node, bindObjectName) {
     var indent = node.indent || ''
     if (node.type === 'root') {
-      node.beforebegin = `${indent}/***/ var _rootScope_ = ${bindFunctionName}(this, { root: true }, null, function (_output_, _scope_) {`;
-      node.afterend = `\n${indent}/***/ }); _rootScope_.innerRender(_output_); ${bindFunctionName}.$$scope = _rootScope_;`
+      node.beforebegin = `${indent}/***/ var _rootScope_ = ${bindObjectName}.bind(this, { root: true }, null, function (_output_, _scope_) {`;
+      node.afterend = `\n${indent}/***/ }); _rootScope_.innerRender(_output_); ${bindObjectName}.$$scope = _rootScope_;`
       return;
     }
 
@@ -112,7 +114,7 @@
         value = attr.value;
       } else if (attr.name[0] === '@') {
         hasOverwriteAttr = true;
-        value = "function (event) { with (_scope_.import || {}) { " + attr.value + " }}";
+        value = `function (event) { with (${bindObjectName}._imports || {}) { ${attr.value} }}`;
       } else {
         value = JSON.stringify(attr.value);
       }
@@ -124,7 +126,7 @@
 
     node.beforebegin = '';
     if (bindDataValue) {
-      node.beforebegin += `\n${indent}/***/ ${bindFunctionName}(${bindDataValue}, _scope_, function (_output_, _scope_, holdInner) {\n`;
+      node.beforebegin += `\n${indent}/***/ ${bindObjectName}.bind(${bindDataValue}, _scope_, function (_output_, _scope_, holdInner) {\n`;
       node.beforeend = `\n${indent}/***/ _scope_.innerRender = function(_output_) {\n`;
       node.afterbegin = `\n${indent}/***/ }; if (holdInner) { _scope_.innerRender(_output_); }\n`
       node.afterend = `\n${indent}/***/ }).outerRender(_output_, true);\n`
@@ -132,18 +134,13 @@
 
     varintAttrs += `${indent}/***/ ];\n`;
     node.beforebegin += varintAttrs;
-    node.overwriteAttrs = '!#{_scope_.attrsRender(_scope_, _attrs_)}';
+    node.overwriteAttrs = `!#{${bindObjectName}.attrsRender(_scope_, _attrs_)}`;
   });
 
   // textarea.value = template;
 
   element.innerHTML = jhtmls.render(template, rootData);
-  jnodes.bind.$$scope.element = element;
-  var importScope = {
-    show: function (text) {
-      console.log('text: %s', text)
-    }
-  };
+  jnodes.binder.$$scope.element = element;
 
   function findEventTarget(parent, target, selector) {
     var elements = [].slice.call(parent.querySelectorAll(selector));
@@ -158,7 +155,6 @@
     var cmd = target.getAttribute('data-jnodes-event-' + event.type);
     if (cmd && cmd[0] === '@') {
       var scope = binder.scope(target);
-      scope.import = importScope
       var method = (scope.methods || {})[cmd]
       if (method) {
         method.call(target, event);

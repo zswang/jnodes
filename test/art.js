@@ -293,5 +293,19 @@ describe("src/ts/Compiler/art.ts", function () {
   assert.equal(examplejs_printLines.join("\n"), "{\"tag\":\":template\",\"attrs\":[{\"name\":\"class\",\"value\":\"book\"}]}"); examplejs_printLines = [];
   });
           
+  it("compiler_art:base5", function () {
+    examplejs_printLines = [];
+  var node = {
+    tag: 'span',
+    attrs: [{
+      name: 'class',
+      value: 'book',
+    }]
+  };
+  compiler_art(node);
+  examplejs_print(JSON.stringify(node));
+  assert.equal(examplejs_printLines.join("\n"), "{\"tag\":\"span\",\"attrs\":[{\"name\":\"class\",\"value\":\"book\"}]}"); examplejs_printLines = [];
+  });
+          
 });
          
