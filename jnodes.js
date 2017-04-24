@@ -293,7 +293,7 @@ var guid = 0;
         [].push.apply(elements, element.querySelectorAll('[' + jnodes.binder.eventAttributePrefix + type + ']'));
         elements.forEach(function(item) {
           var e = { type: type };
-          triggerScopeEvent(e, item);
+          jnodes.binder.triggerScopeEvent(e, item);
           item.removeAttribute(jnodes.binder.eventAttributePrefix + type);
         });
       }
@@ -331,17 +331,6 @@ var guid = 0;
     }
     return target;
   }
-  function triggerScopeEvent(event, target) {
-    target = target || event.target;
-    var cmd = target.getAttribute('data-jnodes-event-' + event.type);
-    if (cmd && cmd[0] === '@') {
-      var scope = jnodes.binder.scope(target);
-      var method = (scope.methods || {})[cmd]
-      if (method) {
-        method.call(target, event);
-      }
-    }
-  }
   ['click'].forEach(function (eventName) {
     document.addEventListener(eventName, function (e) {
       if (e.target.getAttribute('data-jnodes-event-input')) {
@@ -355,7 +344,7 @@ var guid = 0;
       if (!target) {
         return;
       }
-      triggerScopeEvent(e, target);
+      jnodes.binder.triggerScopeEvent(e, target);
     })
   });
   var li = div.querySelector('ul li');
@@ -364,7 +353,7 @@ var guid = 0;
   console.log(li.className);
   // > star
   ```
- * @example bind():base
+ * @example bind():update
   ```js
   var data = {x: 1, y: 2};
   var binder = new jnodes.Binder();
@@ -684,12 +673,56 @@ var Binder = (function () {
      *
      * @param event 事件对象
      * @param target 元素
+     * @example triggerScopeEvent:coverage 1
+      ```js
+      var binder = new jnodes.Binder();
+      var element = {
+        getAttribute: function () {
+          return null;
+        }
+      };
+      binder.triggerScopeEvent({ target: element });
+      ```
+     * @example triggerScopeEvent:coverage 2
+      ```js
+      var binder = new jnodes.Binder();
+      var scope = binder.bind({ x: 1 }, null, function (output) {
+        output.push('<div></div>');
+      });
+      var element = {
+        getAttribute: function (attrName) {
+          switch (attrName) {
+            case 'data-jnodes-event-click':
+              return '@1';
+            case 'data-jnodes-scope':
+              return scope.id;
+          }
+        }
+      };
+      binder.triggerScopeEvent({ type: 'click', target: element });
+      binder.triggerScopeEvent({ type: 'click', target: null });
+      var element2 = {
+        getAttribute: function (attrName) {
+          switch (attrName) {
+            case 'data-jnodes-event-click':
+              return '@1';
+          }
+        }
+      };
+      binder.triggerScopeEvent({ type: 'click', target: element2 });
+      ```
      */
     Binder.prototype.triggerScopeEvent = function (event, target) {
         target = target || event.target;
+        if (!target) {
+            return;
+        }
         var cmd = target.getAttribute(this._eventAttributePrefix + event.type);
         if (cmd && cmd[0] === '@') {
             var scope = this.scope(target);
+            if (!scope) {
+                return;
+            }
             var method = (scope.methods || {})[cmd];
             if (method) {
                 method.call(target, event);

@@ -175,7 +175,7 @@ describe("src/ts/Binder.ts", function () {
         [].push.apply(elements, element.querySelectorAll('[' + jnodes.binder.eventAttributePrefix + type + ']'));
         elements.forEach(function(item) {
           var e = { type: type };
-          triggerScopeEvent(e, item);
+          jnodes.binder.triggerScopeEvent(e, item);
           item.removeAttribute(jnodes.binder.eventAttributePrefix + type);
         });
       }
@@ -221,18 +221,6 @@ describe("src/ts/Binder.ts", function () {
     return target;
   }
 
-  function triggerScopeEvent(event, target) {
-    target = target || event.target;
-    var cmd = target.getAttribute('data-jnodes-event-' + event.type);
-    if (cmd && cmd[0] === '@') {
-      var scope = jnodes.binder.scope(target);
-      var method = (scope.methods || {})[cmd]
-      if (method) {
-        method.call(target, event);
-      }
-    }
-  }
-
   ['click'].forEach(function (eventName) {
     document.addEventListener(eventName, function (e) {
       if (e.target.getAttribute('data-jnodes-event-input')) {
@@ -247,7 +235,7 @@ describe("src/ts/Binder.ts", function () {
       if (!target) {
         return;
       }
-      triggerScopeEvent(e, target);
+      jnodes.binder.triggerScopeEvent(e, target);
     })
   });
 
@@ -259,7 +247,7 @@ describe("src/ts/Binder.ts", function () {
   assert.equal(examplejs_printLines.join("\n"), "star"); examplejs_printLines = [];
   });
           
-  it("bind():base", function () {
+  it("bind():update", function () {
     examplejs_printLines = [];
   var data = {x: 1, y: 2};
   var binder = new jnodes.Binder();
@@ -282,6 +270,47 @@ describe("src/ts/Binder.ts", function () {
   binder.update(scope);
   examplejs_print(JSON.stringify(element));
   assert.equal(examplejs_printLines.join("\n"), "{\"innerHTML\":\"<div></div>\"}"); examplejs_printLines = [];
+  });
+          
+  it("triggerScopeEvent:coverage 1", function () {
+    examplejs_printLines = [];
+    var binder = new jnodes.Binder();
+    var element = {
+      getAttribute: function () {
+        return null;
+      }
+    };
+    binder.triggerScopeEvent({ target: element });
+  });
+          
+  it("triggerScopeEvent:coverage 2", function () {
+    examplejs_printLines = [];
+    var binder = new jnodes.Binder();
+
+    var scope = binder.bind({ x: 1 }, null, function (output) {
+      output.push('<div></div>');
+    });
+    var element = {
+      getAttribute: function (attrName) {
+        switch (attrName) {
+          case 'data-jnodes-event-click':
+            return '@1';
+          case 'data-jnodes-scope':
+            return scope.id;
+        }
+      }
+    };
+    binder.triggerScopeEvent({ type: 'click', target: element });
+    binder.triggerScopeEvent({ type: 'click', target: null });
+    var element2 = {
+      getAttribute: function (attrName) {
+        switch (attrName) {
+          case 'data-jnodes-event-click':
+            return '@1';
+        }
+      }
+    };
+    binder.triggerScopeEvent({ type: 'click', target: element2 });
   });
           
 });

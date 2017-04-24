@@ -100,7 +100,7 @@ import { H5Node } from "../Types"
         [].push.apply(elements, element.querySelectorAll('[' + jnodes.binder.eventAttributePrefix + type + ']'));
         elements.forEach(function(item) {
           var e = { type: type };
-          triggerScopeEvent(e, item);
+          jnodes.binder.triggerScopeEvent(e, item);
           item.removeAttribute(jnodes.binder.eventAttributePrefix + type);
         });
       }
@@ -146,18 +146,6 @@ import { H5Node } from "../Types"
     return target;
   }
 
-  function triggerScopeEvent(event, target) {
-    target = target || event.target;
-    var cmd = target.getAttribute('data-jnodes-event-' + event.type);
-    if (cmd && cmd[0] === '@') {
-      var scope = jnodes.binder.scope(target);
-      var method = (scope.methods || {})[cmd]
-      if (method) {
-        method.call(target, event);
-      }
-    }
-  }
-
   ['click'].forEach(function (eventName) {
     document.addEventListener(eventName, function (e) {
       if (e.target.getAttribute('data-jnodes-event-input')) {
@@ -172,7 +160,7 @@ import { H5Node } from "../Types"
       if (!target) {
         return;
       }
-      triggerScopeEvent(e, target);
+      jnodes.binder.triggerScopeEvent(e, target);
     })
   });
 
