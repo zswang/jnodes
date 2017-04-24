@@ -465,13 +465,8 @@ var Binder = (function () {
             }
         }
         else {
-            if (typeof model === 'string') {
-                scope.id = (guid++).toString(36);
-                this._binds[scope.id] = scope;
-            }
-            else {
-                scope.id = 'value:' + model;
-            }
+            scope.id = (guid++).toString(36);
+            this._binds[scope.id] = scope;
         }
         return scope;
     };
@@ -495,11 +490,6 @@ var Binder = (function () {
     Binder.prototype.scope = function (id) {
         var scope;
         if (typeof id === 'string') {
-            if (id.indexOf('value:') >= 0) {
-                return {
-                    model: JSON.parse(id.slice(6))
-                };
-            }
             scope = this._binds[id];
             if (scope) {
                 return scope;

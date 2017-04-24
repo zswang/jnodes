@@ -648,12 +648,8 @@ class Binder {
       }
 
     } else {
-      if (typeof model === 'string') {
-        scope.id = (guid++).toString(36)
-        this._binds[scope.id] = scope
-      } else {
-        scope.id = 'value:' + model
-      }
+      scope.id = (guid++).toString(36)
+      this._binds[scope.id] = scope
     }
 
     return scope
@@ -682,11 +678,6 @@ class Binder {
   public scope(id: Element | string) {
     let scope
     if (typeof id === 'string') {
-      if (id.indexOf('value:') >= 0) {
-        return {
-          model: JSON.parse(id.slice(6))
-        }
-      }
       scope = this._binds[id]
       if (scope) {
         return scope
