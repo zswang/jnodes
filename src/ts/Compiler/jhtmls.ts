@@ -6,7 +6,7 @@ import { H5Node } from "../Types"
  *
  * @param node 节点
  * @param bindObjectName 全局对象名
- * @example compiler_jhtmls:base
+ * @example compiler_jhtmls:base1
   ```js
   var node = {
     tag: ':template'
@@ -27,6 +27,33 @@ import { H5Node } from "../Types"
   compiler_jhtmls(node);
   console.log(JSON.stringify(node));
   // > {"tag":":template","attrs":[{"name":"class","value":"book"}]}
+  ```
+ * @example compiler_jhtmls:base3
+  ```html
+  <div>
+    <script type="text/jhtmls">
+    <div><button @click="pos.x++">plus x</button></div>
+    </script>
+  </div>
+  ```
+  ```js
+  var data = {
+    tag: 'x',
+    pos: {
+      x: 1,
+    }
+  };
+  var div = document.querySelector('div');
+
+  jnodes.binder.registerCompiler('jhtmls', function (templateCode, bindObjectName) {
+    var node = jnodes.Parser.parse(templateCode);
+    var code = jnodes.Parser.build(node, bindObjectName, compiler_jhtmls);
+    return jhtmls.render(code);
+  });
+
+  div.innerHTML = jnodes.binder.templateCompiler('jhtmls', div.querySelector('script').innerHTML)(data);
+  var rootScope = jnodes.binder.$$scope;
+  rootScope.element = div;
   ```
  */
 function compiler_jhtmls(node: H5Node, bindObjectName: string) {
@@ -56,7 +83,7 @@ function compiler_jhtmls(node: H5Node, bindObjectName: string) {
     return
   }
 
-  let varintAttrs = `${indent}${inserFlag}var _attrs_ = [\n`
+  let varintAttrs = `\n${indent}${inserFlag}var _attrs_ = [\n`
   let hasOverwriteAttr
   let bindDataValue
   node.attrs.forEach((attr) => {
