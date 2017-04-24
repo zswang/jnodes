@@ -1,5 +1,10 @@
 import { H5Node } from "../Types"
 
+interface ArtCompilerOptions {
+    bindObjectName: string
+    out: string
+}
+
 /*<function name="compiler_art">*/
 /**
  * art 处理
@@ -60,7 +65,10 @@ import { H5Node } from "../Types"
   var books = [{id: 1, title: 'book1'}, {id: 2, title: 'book2'}, {id: 3, title: 'book3'}];
   jnodes.binder.registerCompiler('art', function (templateCode, bindObjectName) {
     var node = jnodes.Parser.parse(templateCode);
-    var code = jnodes.Parser.build(node, bindObjectName, compiler_art);
+    var code = jnodes.Parser.build(node, {
+      bindObjectName: bindObjectName,
+      out: (art.compile.Compiler && art.compile.Compiler.CONSTS.OUT) || '$out',
+    }, compiler_art);
     var imports = jnodes.binder._import || {};
     imports.jnodes = jnodes;
     imports.Math = Math;
@@ -180,7 +188,10 @@ import { H5Node } from "../Types"
   var books = [{id: 1, title: 'book1', star: false}, {id: 2, title: 'book2', star: false}, {id: 3, title: 'book3', star: false}];
   jnodes.binder.registerCompiler('art', function (templateCode, bindObjectName) {
     var node = jnodes.Parser.parse(templateCode);
-    var code = jnodes.Parser.build(node, bindObjectName, compiler_art);
+    var code = jnodes.Parser.build(node, {
+      bindObjectName: bindObjectName,
+      out: (art.compile.Compiler && art.compile.Compiler.CONSTS.OUT) || '$out',
+    }, compiler_art);
     var imports = jnodes.binder._import || {};
     imports.jnodes = jnodes;
     imports.Math = Math;
@@ -269,11 +280,11 @@ import { H5Node } from "../Types"
   // > {"tag":"span","attrs":[{"name":"class","value":"book"}]}
   ```
    */
-function compiler_art(node: H5Node, bindObjectName: string) {
+function compiler_art(node: H5Node, options: ArtCompilerOptions) {
   let indent = node.indent || ''
   if (node.type === 'root') {
-    node.beforebegin = `<%${indent}/***/ var _rootScope_ = ${bindObjectName}.bind($data, { root: true }, null, function (_output_, _scope_) { var $out = ''; %>`
-    node.afterend = `<%${indent}/***/ _output_.push($out); }); var _output_ = []; _rootScope_.innerRender(_output_); $out += _output_.join(''); ${bindObjectName}.$$scope = _rootScope_; %>`
+    node.beforebegin = `<%${indent}/***/ var _rootScope_ = ${options.bindObjectName}.bind($data, { root: true }, null, function (_output_, _scope_) { var ${options.out} = ''; %>`
+    node.afterend = `<%${indent}/***/ _output_.push(${options.out}); }); var _output_ = []; _rootScope_.innerRender(_output_); ${options.out} += _output_.join(''); ${options.bindObjectName}.$$scope = _rootScope_; %>`
     return
   }
 
@@ -288,7 +299,7 @@ function compiler_art(node: H5Node, bindObjectName: string) {
   if (node.tag === ':template') {
     node.attrs.some((attr) => {
       if (attr.name === 'name') {
-        node.overwriteNode = `<% $out += ${bindObjectName}.templateRender(${JSON.stringify(attr.value)}, _scope_, ${bindObjectName}.bind); %>`
+        node.overwriteNode = `<% ${options.out} += ${options.bindObjectName}.templateRender(${JSON.stringify(attr.value)}, _scope_, ${options.bindObjectName}.bind); %>`
         return true
       }
     })
@@ -320,15 +331,15 @@ function compiler_art(node: H5Node, bindObjectName: string) {
 
   node.beforebegin = ``
   if (bindDataValue) {
-    node.beforebegin += `<%${indent}/***/ _output_.push($out); $out=''; ${bindObjectName}.bind(${bindDataValue}, _scope_, function (_output_, _scope_, holdInner) { var $out = ''; %>`
-    node.beforeend = `<%${indent}/***/ _scope_.innerRender = function(_output_) { var $out = '';%>`
-    node.afterbegin = `<%${indent}/***/ _output_.push($out); }; if (holdInner) { _output_.push($out); $out = ''; _scope_.innerRender(_output_); } %>`
-    node.afterend = `<%${indent}/***/ _output_.push($out); }).outerRender(_output_, true); %>`
+    node.beforebegin += `<%${indent}/***/ _output_.push(${options.out}); ${options.out}=''; ${options.bindObjectName}.bind(${bindDataValue}, _scope_, function (_output_, _scope_, holdInner) { var ${options.out} = ''; %>`
+    node.beforeend = `<%${indent}/***/ _scope_.innerRender = function(_output_) { var ${options.out} = '';%>`
+    node.afterbegin = `<%${indent}/***/ _output_.push(${options.out}); }; if (holdInner) { _output_.push(${options.out}); ${options.out} = ''; _scope_.innerRender(_output_); } %>`
+    node.afterend = `<%${indent}/***/ _output_.push(${options.out}); }).outerRender(_output_, true); %>`
   }
 
   varintAttrs += `${indent}/***/ ];%>`
   node.beforebegin += varintAttrs
-  node.overwriteAttrs = `<%- ${bindObjectName}.attrsRender(_scope_, _attrs_) %>`
+  node.overwriteAttrs = `<%- ${options.bindObjectName}.attrsRender(_scope_, _attrs_) %>`
 } /*</function>*/
 
 export {

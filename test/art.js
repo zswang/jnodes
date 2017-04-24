@@ -75,7 +75,10 @@ describe("src/ts/Compiler/art.ts", function () {
   var books = [{id: 1, title: 'book1'}, {id: 2, title: 'book2'}, {id: 3, title: 'book3'}];
   jnodes.binder.registerCompiler('art', function (templateCode, bindObjectName) {
     var node = jnodes.Parser.parse(templateCode);
-    var code = jnodes.Parser.build(node, bindObjectName, compiler_art);
+    var code = jnodes.Parser.build(node, {
+      bindObjectName: bindObjectName,
+      out: (art.compile.Compiler && art.compile.Compiler.CONSTS.OUT) || '$out',
+    }, compiler_art);
     var imports = jnodes.binder._import || {};
     imports.jnodes = jnodes;
     imports.Math = Math;
@@ -202,7 +205,10 @@ describe("src/ts/Compiler/art.ts", function () {
   var books = [{id: 1, title: 'book1', star: false}, {id: 2, title: 'book2', star: false}, {id: 3, title: 'book3', star: false}];
   jnodes.binder.registerCompiler('art', function (templateCode, bindObjectName) {
     var node = jnodes.Parser.parse(templateCode);
-    var code = jnodes.Parser.build(node, bindObjectName, compiler_art);
+    var code = jnodes.Parser.build(node, {
+      bindObjectName: bindObjectName,
+      out: (art.compile.Compiler && art.compile.Compiler.CONSTS.OUT) || '$out',
+    }, compiler_art);
     var imports = jnodes.binder._import || {};
     imports.jnodes = jnodes;
     imports.Math = Math;
