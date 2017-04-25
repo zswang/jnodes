@@ -84,32 +84,7 @@ import { H5Node } from "../Types"
   </div>
   ```
   ```js
-  function lifecycle(type) {
-    return function (scope) {
-      if (!scope.lifecycle) {
-        return;
-      }
-      var element = jnodes.binder.element(scope);
-      if (element) {
-        var elements;
-        if (element.getAttribute(jnodes.binder.eventAttributePrefix + type)) {
-          elements = [element];
-        } else {
-          elements = [];
-        }
-        [].push.apply(elements, element.querySelectorAll('[' + jnodes.binder.eventAttributePrefix + type + ']'));
-        elements.forEach(function(item) {
-          var e = { type: type };
-          jnodes.binder.triggerScopeEvent(e, item);
-          item.removeAttribute(jnodes.binder.eventAttributePrefix + type);
-        });
-      }
-    }
-  }
-  jnodes.binder = new jnodes.Binder({
-    onScopeCreate: lifecycle('create'),
-    onScopeDestroy: lifecycle('destroy'),
-  });
+  jnodes.binder = new jnodes.Binder({});
 
   var books = [{id: 1, title: 'book1', star: false}, {id: 2, title: 'book2', star: false}, {id: 3, title: 'book3', star: false}];
   jnodes.binder.registerCompiler('ejs', function (templateCode, bindObjectName) {
@@ -266,7 +241,7 @@ function compiler_ejs(node: H5Node, bindObjectName: string) {
 
   varintAttrs += `${indent}/***/ ];%>`
   node.beforebegin += varintAttrs
-  node.overwriteAttrs = `<%- ${bindObjectName}.attrsRender(_scope_, _attrs_) %>`
+  node.overwriteAttrs = `<%- ${bindObjectName}._attrsRender(_scope_, _attrs_) %>`
 } /*</function>*/
 
 export {

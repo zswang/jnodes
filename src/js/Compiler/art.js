@@ -110,32 +110,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
   </div>
   ```
   ```js
-  function lifecycle(type) {
-    return function (scope) {
-      if (!scope.lifecycle) {
-        return;
-      }
-      var element = jnodes.binder.element(scope);
-      if (element) {
-        var elements;
-        if (element.getAttribute(jnodes.binder.eventAttributePrefix + type)) {
-          elements = [element];
-        } else {
-          elements = [];
-        }
-        [].push.apply(elements, element.querySelectorAll('[' + jnodes.binder.eventAttributePrefix + type + ']'));
-        elements.forEach(function(item) {
-          var e = { type: type };
-          jnodes.binder.triggerScopeEvent(e, item);
-          item.removeAttribute(jnodes.binder.eventAttributePrefix + type);
-        });
-      }
-    }
-  }
-  jnodes.binder = new jnodes.Binder({
-    onScopeCreate: lifecycle('create'),
-    onScopeDestroy: lifecycle('destroy'),
-  });
+  jnodes.binder = new jnodes.Binder();
   var escape = function escape(content) {
       var escapeReg = /&(?![\w#]+;)|[<>"']/g;
       var escapeMap = {
@@ -303,6 +278,6 @@ function compiler_art(node, options) {
     }
     varintAttrs += indent + "/***/ ];%>";
     node.beforebegin += varintAttrs;
-    node.overwriteAttrs = "<%- " + options.bindObjectName + ".attrsRender(_scope_, _attrs_) %>";
+    node.overwriteAttrs = "<%- " + options.bindObjectName + "._attrsRender(_scope_, _attrs_) %>";
 } /*</function>*/
 exports.compiler_art = compiler_art;

@@ -138,7 +138,7 @@ describe("src/ts/Binder.ts", function () {
   });
           
   it("jsdom@bind():bind jhtmls 2", function (done) {
-    jsdom.env("  <div>\n    <script type=\"text/jhtmls\">\n    <ul :bind=\"books\" :data-length=\"books.length\" @create=\"books.loaded = 'done'\" class=\"books\">\n    books.forEach(function (book) {\n      <li :bind=\"book\" @click=\"book.star = !book.star\" class=\"\" :class=\"{star: book.star}\">\n        <a :href=\"'/' + book.id\" :bind=\"book.title\">#{book.title}</a>\n        <span :bind=\"book.id\" :data-star=\"book.star\">#{book.id}</span>\n      </li>\n    });\n    </ul>\n    </script>\n  </div>", {
+    jsdom.env("  <div>\n    <script type=\"text/jhtmls\">\n    <ul :bind=\"books\" :data-length=\"books.length\" @create=\"books.loaded = 'done'\" class=\"books\">\n    books.forEach(function (book) {\n      <li :bind=\"book\" @click=\"book.star = !book.star\" class=\"\" :class=\"{star: book.star}\">\n        <a :href=\"'/' + book.id\" :bind=\"book.title\" @destroy=\"console.info('destroy')\">#{book.title}</a>\n        <span :bind=\"book.id\" :data-star=\"book.star\">#{book.id}</span>\n      </li>\n    });\n    </ul>\n    </script>\n  </div>", {
         features: {
           FetchExternalResources : ["script", "link"],
           ProcessExternalResources: ["script"]
@@ -159,32 +159,7 @@ describe("src/ts/Binder.ts", function () {
           
   it("bind():bind jhtmls 2", function () {
     examplejs_printLines = [];
-  function lifecycle(type) {
-    return function (scope) {
-      if (!scope.lifecycle) {
-        return;
-      }
-      var element = jnodes.binder.element(scope);
-      if (element) {
-        var elements;
-        if (element.getAttribute(jnodes.binder.eventAttributePrefix + type)) {
-          elements = [element];
-        } else {
-          elements = [];
-        }
-        [].push.apply(elements, element.querySelectorAll('[' + jnodes.binder.eventAttributePrefix + type + ']'));
-        elements.forEach(function(item) {
-          var e = { type: type };
-          jnodes.binder.triggerScopeEvent(e, item);
-          item.removeAttribute(jnodes.binder.eventAttributePrefix + type);
-        });
-      }
-    }
-  }
-  jnodes.binder = new jnodes.Binder({
-    onScopeCreate: lifecycle('create'),
-    onScopeDestroy: lifecycle('destroy'),
-  });
+  jnodes.binder = new jnodes.Binder({});
 
   var books = [{id: 1, title: 'book1', star: false}, {id: 2, title: 'book2', star: false}, {id: 3, title: 'book3', star: false}];
   jnodes.binder.registerCompiler('jhtmls', function (templateCode, bindObjectName) {

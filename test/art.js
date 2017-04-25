@@ -144,32 +144,7 @@ describe("src/ts/Compiler/art.ts", function () {
           
   it("compiler_art:base2", function () {
     examplejs_printLines = [];
-  function lifecycle(type) {
-    return function (scope) {
-      if (!scope.lifecycle) {
-        return;
-      }
-      var element = jnodes.binder.element(scope);
-      if (element) {
-        var elements;
-        if (element.getAttribute(jnodes.binder.eventAttributePrefix + type)) {
-          elements = [element];
-        } else {
-          elements = [];
-        }
-        [].push.apply(elements, element.querySelectorAll('[' + jnodes.binder.eventAttributePrefix + type + ']'));
-        elements.forEach(function(item) {
-          var e = { type: type };
-          jnodes.binder.triggerScopeEvent(e, item);
-          item.removeAttribute(jnodes.binder.eventAttributePrefix + type);
-        });
-      }
-    }
-  }
-  jnodes.binder = new jnodes.Binder({
-    onScopeCreate: lifecycle('create'),
-    onScopeDestroy: lifecycle('destroy'),
-  });
+  jnodes.binder = new jnodes.Binder();
 
   var escape = function escape(content) {
 

@@ -116,7 +116,7 @@ function compiler_jhtmls(node: H5Node, bindObjectName: string) {
 
   varintAttrs += `${indent}${inserFlag}];\n`
   node.beforebegin += varintAttrs
-  node.overwriteAttrs = `!#{${bindObjectName}.attrsRender(_scope_, _attrs_)}`
+  node.overwriteAttrs = `!#{${bindObjectName}._attrsRender(_scope_, _attrs_)}`
 } /*</function>*/
 
 export {

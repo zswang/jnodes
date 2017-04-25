@@ -62,6 +62,10 @@ interface Scope {
    */
   parent: Scope
   /**
+   * 绑定对象
+   */
+  binder: Binder
+  /**
    * 外层的元素
    */
   _element?: Element
@@ -97,7 +101,11 @@ interface Scope {
   /**
    * 是否关心生命周期
    */
-  lifecycle?: boolean
+  lifecycleCreate?: boolean
+  /**
+   * 是否关心生命周期
+   */
+  lifecycleDestroy?: boolean
 }
 
 interface FindElementFunction {
@@ -120,14 +128,6 @@ interface TemplateRenderBindFunction {
   (templateName: string, scope: Scope): string
 }
 
-interface ScopeCreateFunction {
-  (scope: Scope)
-}
-interface ScopeDestroyFunction {
-  (scope: Scope)
-}
-
-
 interface BinderOptions {
   findElement?: FindElementFunction
   updateElement?: UpdateElementFunction
@@ -136,8 +136,6 @@ interface BinderOptions {
   scopeAttributeName?: string
   bindObjectName?: string
   eventAttributePrefix?: string
-  onScopeCreate?: ScopeCreateFunction
-  onScopeDestroy?: ScopeDestroyFunction
   imports?: object
 }
 
@@ -265,7 +263,7 @@ let guid: number = 0
     <ul :bind="books" :data-length="books.length" @create="books.loaded = 'done'" class="books">
     books.forEach(function (book) {
       <li :bind="book" @click="book.star = !book.star" class="" :class="{star: book.star}">
-        <a :href="'/' + book.id" :bind="book.title">#{book.title}</a>
+        <a :href="'/' + book.id" :bind="book.title" @destroy="console.info('destroy')">#{book.title}</a>
         <span :bind="book.id" :data-star="book.star">#{book.id}</span>
       </li>
     });
@@ -274,32 +272,7 @@ let guid: number = 0
   </div>
   ```
   ```js
-  function lifecycle(type) {
-    return function (scope) {
-      if (!scope.lifecycle) {
-        return;
-      }
-      var element = jnodes.binder.element(scope);
-      if (element) {
-        var elements;
-        if (element.getAttribute(jnodes.binder.eventAttributePrefix + type)) {
-          elements = [element];
-        } else {
-          elements = [];
-        }
-        [].push.apply(elements, element.querySelectorAll('[' + jnodes.binder.eventAttributePrefix + type + ']'));
-        elements.forEach(function(item) {
-          var e = { type: type };
-          jnodes.binder.triggerScopeEvent(e, item);
-          item.removeAttribute(jnodes.binder.eventAttributePrefix + type);
-        });
-      }
-    }
-  }
-  jnodes.binder = new jnodes.Binder({
-    onScopeCreate: lifecycle('create'),
-    onScopeDestroy: lifecycle('destroy'),
-  });
+  jnodes.binder = new jnodes.Binder({});
 
   var books = [{id: 1, title: 'book1', star: false}, {id: 2, title: 'book2', star: false}, {id: 3, title: 'book3', star: false}];
   jnodes.binder.registerCompiler('jhtmls', function (templateCode, bindObjectName) {
@@ -397,13 +370,7 @@ class Binder {
   _attrsRender: AttrsRenderFunction
   _templates: { [key: string]: TemplateRenderFunction }
   _compiler: { [key: string]: TemplateCompilerFunction }
-  _onScopeCreate: ScopeCreateFunction
-  _onScopeDestroy: ScopeDestroyFunction
-  _newScopes: Scope[]
   _imports: object
-
-  get attrsRender() { return this._attrsRender }
-  get eventAttributePrefix() { return this._eventAttributePrefix }
 
   constructor(options?: BinderOptions) {
     options = options || {}
@@ -414,13 +381,10 @@ class Binder {
     this._bindAttributeName = options.bindAttributeName || 'bind'
     this._scopeAttributeName = options.scopeAttributeName || `data-jnodes-scope`
     this._eventAttributePrefix = options.eventAttributePrefix || `data-jnodes-event-`
-    this._onScopeCreate = options.onScopeCreate
-    this._onScopeDestroy = options.onScopeDestroy
     this._imports = options.imports
 
     this._templates = {}
     this._compiler = {}
-    this._newScopes = []
 
     this._findElement = options.findElement || ((scope: Scope): Element => {
       return document.querySelector(`[${this._scopeAttributeName}="${scope.id}"]`)
@@ -429,6 +393,7 @@ class Binder {
       if (!element || (!scope.outerRender && !scope.innerRender)) {
         return
       }
+      this.lifecycleEvent(scope, 'destroy')
       this.cleanChildren(scope)
       let output = []
       if (!scope.innerRender) { // 没有内部渲染函数
@@ -450,12 +415,7 @@ class Binder {
           element.outerHTML = output.join('')
         }
       }
-      if (this._onScopeCreate) {
-        this._newScopes.forEach((scope) => {
-          this._onScopeCreate(scope)
-        })
-      }
-      this._newScopes = []
+      this.lifecycleEvent(scope, 'create')
     })
     this._attrsRender = options.attrsRender || ((scope: Scope, attrs: Attr[]): string => {
       if (!attrs) {
@@ -474,8 +434,10 @@ class Binder {
           name = this._scopeAttributeName
           values.push(scope.id)
         } else if (this._eventAttributePrefix && '@' === attr.name[0]) {
-          if (name === 'create' || name === 'destroy') {
-            scope.lifecycle = true
+          if (name === 'create') {
+            scope.lifecycleCreate = true
+          } else if (name === 'destroy') {
+            scope.lifecycleDestroy = true
           }
           name = this._eventAttributePrefix + name
         }
@@ -563,14 +525,39 @@ class Binder {
             binds.splice(index, 1)
           }
         }
-        if (this._onScopeDestroy) {
-          this._onScopeDestroy(item)
-        }
         delete this._binds[item.id]
 
         this.cleanChildren(item)
         scope.children = []
+        delete scope.methods;
+        delete scope.attrs;
       })
+    }
+  }
+
+  /**
+   * 触发元素生命周期改变的事件
+   *
+   * @param scope 作用域
+   * @param parent 容器
+   * @param type 类型
+   */
+  lifecycleEvent(scope: Scope, type: 'create' | 'destroy') {
+    let parent = this.element(scope);
+    function hasLifecycle(scope: Scope) {
+      if ((type === 'create' && scope.lifecycleCreate) || (type === 'destroy' && scope.lifecycleDestroy)) {
+        return true;
+      }
+      if (scope.children) {
+        return scope.children.some(hasLifecycle);
+      }
+    }
+    if (hasLifecycle(scope)) {
+      let elements = [].slice.apply(parent.querySelectorAll(`[${this._eventAttributePrefix}${type}]`))
+      elements.forEach((item) => {
+        this.triggerScopeEvent({ type: type }, item);
+        item.removeAttribute(`${this._eventAttributePrefix}${type}`);
+      });
     }
   }
 
@@ -589,9 +576,8 @@ class Binder {
     let scope: Scope = {
       model: model,
       parent: parent,
+      binder: this,
     }
-    this._newScopes.push(scope)
-
     Object.defineProperty(scope, 'element', {
       enumerable: true,
       configurable: true,
@@ -602,12 +588,7 @@ class Binder {
         scope._element = value
         if (value) {
           value.setAttribute(this._scopeAttributeName, scope.id)
-          if (this._onScopeCreate) {
-            this._newScopes.forEach((scope) => {
-              this._onScopeCreate(scope)
-            })
-          }
-          this._newScopes = []
+          this.lifecycleEvent(scope, 'create')
         }
       }
     })
@@ -623,22 +604,22 @@ class Binder {
       }
     }
 
+    scope.id = (guid++).toString(36)
+    this._binds[scope.id] = scope
+
+    if (parent) {
+      parent.children = parent.children || []
+      parent.children.push(scope)
+    }
+
     // 只绑定对象类型
     if (model && typeof model === 'object') {
-      scope.id = (guid++).toString(36)
-      this._binds[scope.id] = scope
-
-      if (parent) {
-        parent.children = parent.children || []
-        parent.children.push(scope)
-      }
-
       // 对象已经绑定过
       if (!model.$$binds) {
         model.$$binds = [scope]
         observer(model, () => {
           model.$$binds.forEach((scope) => {
-            this.update(scope)
+            scope.binder.update(scope)
           })
         }, (key) => {
           return key && key.slice(2) !== '$$'
@@ -646,10 +627,6 @@ class Binder {
       } else {
         model.$$binds.push(scope)
       }
-
-    } else {
-      scope.id = (guid++).toString(36)
-      this._binds[scope.id] = scope
     }
 
     return scope
@@ -669,9 +646,6 @@ class Binder {
    * @param scope 作用域
    */
   public update(scope: Scope) {
-    delete scope.methods
-    delete scope.attrs
-
     this._updateElement(this.element(scope), scope)
   }
 

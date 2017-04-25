@@ -16,25 +16,29 @@
 <body>
     <div id="books_jhtmls">
       <script type="text/jhtmls">
+      var info = {
+        createCount: 0,
+        destroyCount: 0,
+      }
+      <h3 :bind="info">create count: #{info.createCount} --- destroy count: #{info.destroyCount}</h3>
       <div>
-        <button cmd="remove">remove</button>
-        <button cmd="sort">sort</button>
+        <button @tap="books.shift()">remove</button>
         function _sort() {
           books.$$asc = -(books.$$asc || 1);
           books.sort(function (a, b) {
             return a.title.localeCompare(b.title) * books.$$asc;
           });
         }
-        <button :cmd="_sort">_sort</button>
+        <button @tap="_sort()">sort</button>
       </div>
       <ul :bind="books">
       books.forEach(function (book) {
         <li :bind="book" class="book" :class="{ star: book.star }">
           #{book.title}
           if (book.star) {
-          <button cmd="star">🌟</button>
+          <button @tap="book.star = !book.star" :bind="book.title" @create="info.createCount++" @destroy="info.destroyCount++">🌟</button>
           } else {
-          <button cmd="star">🌛</button>
+          <button @tap="book.star = !book.star">🌛</button>
           }
         </li>
       });
@@ -71,36 +75,10 @@
 
   jnodes.binder.$$scope.element = element;
 
-  h5tap(element, 'button', function (element) {
-    var scope = binder.scope(element);
-    if (!scope) {
-      return;
-    }
-    var cmd = element.getAttribute('cmd');
-    switch (cmd) {
-      case 'star':
-        scope.model.star = !scope.model.star;
-
-        break;
-      case 'remove':
-        scope.model.books.shift();
-        break;
-      case 'sort':
-        scope.model.books.$$asc = -(scope.model.books.$$asc || 1);
-        scope.model.books.sort(function (a, b) {
-          return a.title.localeCompare(b.title) * (scope.model.books.$$asc);
-        })
-        break;
-      default:
-        if (cmd[0] === '@') {
-          var method = (scope.methods || {})[cmd]
-          if (method) {
-            method()
-          }
-        }
-        break;
-    }
+  h5tap(element, '[' + binder._eventAttributePrefix + 'tap]', function (element, e) {
+    binder.triggerScopeEvent({ type: 'tap', target: element });
   });
+
 })();
 </script>
 </html>

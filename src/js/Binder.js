@@ -116,7 +116,7 @@ var guid = 0;
     <ul :bind="books" :data-length="books.length" @create="books.loaded = 'done'" class="books">
     books.forEach(function (book) {
       <li :bind="book" @click="book.star = !book.star" class="" :class="{star: book.star}">
-        <a :href="'/' + book.id" :bind="book.title">#{book.title}</a>
+        <a :href="'/' + book.id" :bind="book.title" @destroy="console.info('destroy')">#{book.title}</a>
         <span :bind="book.id" :data-star="book.star">#{book.id}</span>
       </li>
     });
@@ -125,32 +125,7 @@ var guid = 0;
   </div>
   ```
   ```js
-  function lifecycle(type) {
-    return function (scope) {
-      if (!scope.lifecycle) {
-        return;
-      }
-      var element = jnodes.binder.element(scope);
-      if (element) {
-        var elements;
-        if (element.getAttribute(jnodes.binder.eventAttributePrefix + type)) {
-          elements = [element];
-        } else {
-          elements = [];
-        }
-        [].push.apply(elements, element.querySelectorAll('[' + jnodes.binder.eventAttributePrefix + type + ']'));
-        elements.forEach(function(item) {
-          var e = { type: type };
-          jnodes.binder.triggerScopeEvent(e, item);
-          item.removeAttribute(jnodes.binder.eventAttributePrefix + type);
-        });
-      }
-    }
-  }
-  jnodes.binder = new jnodes.Binder({
-    onScopeCreate: lifecycle('create'),
-    onScopeDestroy: lifecycle('destroy'),
-  });
+  jnodes.binder = new jnodes.Binder({});
   var books = [{id: 1, title: 'book1', star: false}, {id: 2, title: 'book2', star: false}, {id: 3, title: 'book3', star: false}];
   jnodes.binder.registerCompiler('jhtmls', function (templateCode, bindObjectName) {
     var node = jnodes.Parser.parse(templateCode);
@@ -235,12 +210,9 @@ var Binder = (function () {
         this._bindAttributeName = options.bindAttributeName || 'bind';
         this._scopeAttributeName = options.scopeAttributeName || "data-jnodes-scope";
         this._eventAttributePrefix = options.eventAttributePrefix || "data-jnodes-event-";
-        this._onScopeCreate = options.onScopeCreate;
-        this._onScopeDestroy = options.onScopeDestroy;
         this._imports = options.imports;
         this._templates = {};
         this._compiler = {};
-        this._newScopes = [];
         this._findElement = options.findElement || (function (scope) {
             return document.querySelector("[" + _this._scopeAttributeName + "=\"" + scope.id + "\"]");
         });
@@ -248,6 +220,7 @@ var Binder = (function () {
             if (!element || (!scope.outerRender && !scope.innerRender)) {
                 return;
             }
+            _this.lifecycleEvent(scope, 'destroy');
             _this.cleanChildren(scope);
             var output = [];
             if (!scope.innerRender) {
@@ -272,12 +245,7 @@ var Binder = (function () {
                     element.outerHTML = output.join('');
                 }
             }
-            if (_this._onScopeCreate) {
-                _this._newScopes.forEach(function (scope) {
-                    _this._onScopeCreate(scope);
-                });
-            }
-            _this._newScopes = [];
+            _this.lifecycleEvent(scope, 'create');
         });
         this._attrsRender = options.attrsRender || (function (scope, attrs) {
             if (!attrs) {
@@ -296,8 +264,11 @@ var Binder = (function () {
                     values.push(scope.id);
                 }
                 else if (_this._eventAttributePrefix && '@' === attr.name[0]) {
-                    if (name === 'create' || name === 'destroy') {
-                        scope.lifecycle = true;
+                    if (name === 'create') {
+                        scope.lifecycleCreate = true;
+                    }
+                    else if (name === 'destroy') {
+                        scope.lifecycleDestroy = true;
                     }
                     name = _this._eventAttributePrefix + name;
                 }
@@ -347,16 +318,6 @@ var Binder = (function () {
             }).join(' ');
         });
     }
-    Object.defineProperty(Binder.prototype, "attrsRender", {
-        get: function () { return this._attrsRender; },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(Binder.prototype, "eventAttributePrefix", {
-        get: function () { return this._eventAttributePrefix; },
-        enumerable: true,
-        configurable: true
-    });
     Binder.prototype.registerTemplate = function (templateName, render) {
         this._templates[templateName] = render;
     };
@@ -389,12 +350,37 @@ var Binder = (function () {
                         binds.splice(index, 1);
                     }
                 }
-                if (_this._onScopeDestroy) {
-                    _this._onScopeDestroy(item);
-                }
                 delete _this._binds[item.id];
                 _this.cleanChildren(item);
                 scope.children = [];
+                delete scope.methods;
+                delete scope.attrs;
+            });
+        }
+    };
+    /**
+     * 触发元素生命周期改变的事件
+     *
+     * @param scope 作用域
+     * @param parent 容器
+     * @param type 类型
+     */
+    Binder.prototype.lifecycleEvent = function (scope, type) {
+        var _this = this;
+        var parent = this.element(scope);
+        function hasLifecycle(scope) {
+            if ((type === 'create' && scope.lifecycleCreate) || (type === 'destroy' && scope.lifecycleDestroy)) {
+                return true;
+            }
+            if (scope.children) {
+                return scope.children.some(hasLifecycle);
+            }
+        }
+        if (hasLifecycle(scope)) {
+            var elements = [].slice.apply(parent.querySelectorAll("[" + this._eventAttributePrefix + type + "]"));
+            elements.forEach(function (item) {
+                _this.triggerScopeEvent({ type: type }, item);
+                item.removeAttribute("" + _this._eventAttributePrefix + type);
             });
         }
     };
@@ -410,8 +396,8 @@ var Binder = (function () {
         var scope = {
             model: model,
             parent: parent,
+            binder: this,
         };
-        this._newScopes.push(scope);
         Object.defineProperty(scope, 'element', {
             enumerable: true,
             configurable: true,
@@ -422,12 +408,7 @@ var Binder = (function () {
                 scope._element = value;
                 if (value) {
                     value.setAttribute(_this._scopeAttributeName, scope.id);
-                    if (_this._onScopeCreate) {
-                        _this._newScopes.forEach(function (scope) {
-                            _this._onScopeCreate(scope);
-                        });
-                    }
-                    _this._newScopes = [];
+                    _this.lifecycleEvent(scope, 'create');
                 }
             }
         });
@@ -441,20 +422,20 @@ var Binder = (function () {
                 return innerBindRender(output, scope);
             };
         }
+        scope.id = (guid++).toString(36);
+        this._binds[scope.id] = scope;
+        if (parent) {
+            parent.children = parent.children || [];
+            parent.children.push(scope);
+        }
         // 只绑定对象类型
         if (model && typeof model === 'object') {
-            scope.id = (guid++).toString(36);
-            this._binds[scope.id] = scope;
-            if (parent) {
-                parent.children = parent.children || [];
-                parent.children.push(scope);
-            }
             // 对象已经绑定过
             if (!model.$$binds) {
                 model.$$binds = [scope];
                 Observer_1.observer(model, function () {
                     model.$$binds.forEach(function (scope) {
-                        _this.update(scope);
+                        scope.binder.update(scope);
                     });
                 }, function (key) {
                     return key && key.slice(2) !== '$$';
@@ -463,10 +444,6 @@ var Binder = (function () {
             else {
                 model.$$binds.push(scope);
             }
-        }
-        else {
-            scope.id = (guid++).toString(36);
-            this._binds[scope.id] = scope;
         }
         return scope;
     };
@@ -483,8 +460,6 @@ var Binder = (function () {
      * @param scope 作用域
      */
     Binder.prototype.update = function (scope) {
-        delete scope.methods;
-        delete scope.attrs;
         this._updateElement(this.element(scope), scope);
     };
     Binder.prototype.scope = function (id) {

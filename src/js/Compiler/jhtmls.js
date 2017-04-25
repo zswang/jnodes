@@ -110,6 +110,6 @@ function compiler_jhtmls(node, bindObjectName) {
     }
     varintAttrs += "" + indent + inserFlag + "];\n";
     node.beforebegin += varintAttrs;
-    node.overwriteAttrs = "!#{" + bindObjectName + ".attrsRender(_scope_, _attrs_)}";
+    node.overwriteAttrs = "!#{" + bindObjectName + "._attrsRender(_scope_, _attrs_)}";
 } /*</function>*/
 exports.compiler_jhtmls = compiler_jhtmls;
