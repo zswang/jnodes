@@ -247,6 +247,48 @@ describe("src/ts/Binder.ts", function () {
   assert.equal(examplejs_printLines.join("\n"), "{\"innerHTML\":\"<div></div>\"}"); examplejs_printLines = [];
   });
           
+  it("jsdom@bind():attr is null", function (done) {
+    jsdom.env("  <div>\n    <script type=\"text/jhtmls\">\n    <input type=\"checkbox\" :checked=\"checked\">\n    </script>\n  </div>", {
+        features: {
+          FetchExternalResources : ["script", "link"],
+          ProcessExternalResources: ["script"]
+        }
+      },
+      function (err, window) {
+        global.window = window;
+        ["document","navigator"].forEach(
+          function (key) {
+            global[key] = window[key];
+          }
+        );
+        assert.equal(err, null);
+        done();
+      }
+    );
+  });
+          
+  it("bind():attr is null", function () {
+    examplejs_printLines = [];
+  var binder = new jnodes.Binder();
+  var data = { checked: false };
+  var div = document.querySelector('div');
+  jnodes.binder.registerCompiler('jhtmls', function (templateCode, bindObjectName) {
+    var node = jnodes.Parser.parse(templateCode);
+    var code = jnodes.Parser.build(node, bindObjectName, compiler_jhtmls);
+    return jhtmls.render(code);
+  });
+  div.innerHTML = jnodes.binder.templateCompiler('jhtmls', div.querySelector('script').innerHTML)(data);
+  var rootScope = jnodes.binder.$$scope;
+  rootScope.element = div;
+
+  examplejs_print(div.innerHTML.trim());
+  assert.equal(examplejs_printLines.join("\n"), "<input type=\"checkbox\">"); examplejs_printLines = [];
+
+  data.checked = true;
+  examplejs_print(div.innerHTML.trim());
+  assert.equal(examplejs_printLines.join("\n"), "<input checked=\"\" type=\"checkbox\">"); examplejs_printLines = [];
+  });
+          
   it("triggerScopeEvent:coverage 1", function () {
     examplejs_printLines = [];
     var binder = new jnodes.Binder();

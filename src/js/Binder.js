@@ -199,6 +199,32 @@ var guid = 0;
   console.log(JSON.stringify(element));
   // > {"innerHTML":"<div></div>"}
   ```
+ * @example bind():attr is null
+  ```html
+  <div>
+    <script type="text/jhtmls">
+    <input type="checkbox" :checked="checked">
+    </script>
+  </div>
+  ```
+  ```js
+  var binder = new jnodes.Binder();
+  var data = { checked: false };
+  var div = document.querySelector('div');
+  jnodes.binder.registerCompiler('jhtmls', function (templateCode, bindObjectName) {
+    var node = jnodes.Parser.parse(templateCode);
+    var code = jnodes.Parser.build(node, bindObjectName, compiler_jhtmls);
+    return jhtmls.render(code);
+  });
+  div.innerHTML = jnodes.binder.templateCompiler('jhtmls', div.querySelector('script').innerHTML)(data);
+  var rootScope = jnodes.binder.$$scope;
+  rootScope.element = div;
+  console.log(div.innerHTML.trim());
+  // > <input type="checkbox">
+  data.checked = true;
+  console.log(div.innerHTML.trim());
+  // > <input checked="" type="checkbox">
+  ```
    */
 var Binder = (function () {
     function Binder(options) {
@@ -317,9 +343,12 @@ var Binder = (function () {
             return Object.keys(dictValues).map(function (name) {
                 var values = dictValues[name];
                 if (values.length <= 0) {
-                    return name;
+                    return null;
                 }
                 var quoted = dictQuoteds[name] || '';
+                if (values.length === 1 && values[0] === true) {
+                    return "" + name;
+                }
                 return name + "=" + quoted + values.join(' ') + quoted;
             }).join(' ');
         });
