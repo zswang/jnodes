@@ -10,6 +10,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
   ```html
   <div>
     <script type="text/art">
+    <input type="text" @keyup.enter="books.push({id: 4, title: this.value})" value="new">
     <h1 :class="{book: Math.random() > 0.5}">Books</h1>
     <ul :bind="books" @create="books.loaded = 'done'">
     <% books.forEach(function (book) { %>
@@ -51,29 +52,29 @@ Object.defineProperty(exports, "__esModule", { value: true });
           return escapeMap[s];
       });
   };
-  jnodes.binder = new jnodes.Binder();
+  var binder = jnodes.binder = new jnodes.Binder();
   var books = [{id: 1, title: 'book1'}, {id: 2, title: 'book2'}, {id: 3, title: 'book3'}];
-  jnodes.binder.registerCompiler('art', function (templateCode, bindObjectName) {
+  binder.registerCompiler('art', function (templateCode, bindObjectName) {
     var node = jnodes.Parser.parse(templateCode);
     var code = jnodes.Parser.build(node, {
       bindObjectName: bindObjectName,
       out: (art.compile.Compiler && art.compile.Compiler.CONSTS.OUT) || '$out',
     }, compiler_art);
-    var imports = jnodes.binder._import || {};
+    var imports = binder._import || {};
     imports.jnodes = jnodes;
     imports.Math = Math;
     imports.$escape = escape;
     return art.compile(code, { imports: imports });
   });
-  var bookRender = jnodes.binder.templateCompiler('art', document.querySelector('#book').innerHTML);
-  jnodes.binder.registerTemplate('book', function (scope) {
+  var bookRender = binder.templateCompiler('art', document.querySelector('#book').innerHTML);
+  binder.registerTemplate('book', function (scope) {
     return bookRender(scope.model);
   });
   var div = document.querySelector('div');
-  div.innerHTML = jnodes.binder.templateCompiler('art', div.querySelector('script').innerHTML)({
+  div.innerHTML = binder.templateCompiler('art', div.querySelector('script').innerHTML)({
     books: books
   });
-  var rootScope = jnodes.binder.$$scope;
+  var rootScope = binder.$$scope;
   rootScope.element = null;
   rootScope.element = div;
   console.log(rootScope.element === div);
@@ -86,13 +87,44 @@ Object.defineProperty(exports, "__esModule", { value: true });
   books[0].title = 'Jane Eyre';
   console.log(div.querySelector('ul li a').innerHTML);
   // > Jane Eyre
-  console.log(jnodes.binder.scope(div) === rootScope);
+  console.log(binder.scope(div) === rootScope);
   // > true
-  console.log(jnodes.binder.scope(div.querySelector('ul li a')).model.id === 1);
+  console.log(binder.scope(div.querySelector('ul li a')).model.id === 1);
   // > true
   books.shift();
-  console.log(jnodes.binder.scope(div.querySelector('ul li a')).model.id === 2);
+  console.log(binder.scope(div.querySelector('ul li a')).model.id === 2);
   // > true
+  function keyChecker(event, trigger) {
+    switch (trigger) {
+      case 'enter':
+        return event.keyCode === 13;
+      case 'esc':
+        return event.keyCode === 27;
+    }
+  }
+  binder.registerChecker('keyup', keyChecker);
+  function findEventTarget(parent, target, selector) {
+    var elements = [].slice.call(parent.querySelectorAll(selector));
+    while (target && elements.indexOf(target) < 0) {
+      target = target.parentNode;
+    }
+    return target;
+  }
+  ['keydown', 'keyup'].forEach(function (eventName) {
+    div.addEventListener(eventName, function (e) {
+      var target = findEventTarget(div, e.target, '[' + binder._eventAttributePrefix + eventName + ']');
+      if (!target) {
+        return;
+      }
+      binder.triggerScopeEvent(e, target);
+    })
+  })
+  var e = document.createEvent('HTMLEvents');
+  e.initEvent('keyup', true, false);
+  e.keyCode = 13;
+  document.querySelector('input').dispatchEvent(e);
+  console.log(document.querySelector('li:last-child').innerHTML.trim());
+  // > <a href="4">new</a>
   ```
  * @example compiler_art:base2
   ```html
@@ -192,7 +224,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
   var node = {
     tag: ':template'
   };
-  compiler_art(node);
+  compiler_art(node, { bindObjectName: 'jnodes', out: '$out' });
   console.log(JSON.stringify(node));
   // > {"tag":":template"}
   ```
@@ -205,7 +237,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
       value: 'book'
     }]
   };
-  compiler_art(node);
+  compiler_art(node, { bindObjectName: 'jnodes', out: '$out' });
   console.log(JSON.stringify(node));
   // > {"tag":":template","attrs":[{"name":"class","value":"book"}]}
   ```
@@ -218,16 +250,17 @@ Object.defineProperty(exports, "__esModule", { value: true });
       value: 'book',
     }]
   };
-  compiler_art(node);
+  compiler_art(node, { bindObjectName: 'jnodes', out: '$out' });
   console.log(JSON.stringify(node));
   // > {"tag":"span","attrs":[{"name":"class","value":"book"}]}
   ```
    */
 function compiler_art(node, options) {
     var indent = node.indent || '';
+    var bindObjectName = options.bindObjectName;
     if (node.type === 'root') {
-        node.beforebegin = "<%" + indent + "/***/ var _rootScope_ = " + options.bindObjectName + ".bind($data, { root: true }, null, function (_output_, _scope_) { var " + options.out + " = ''; %>";
-        node.afterend = "<%" + indent + "/***/ _output_.push(" + options.out + "); }); var _output_ = []; _rootScope_.innerRender(_output_); " + options.out + " += _output_.join(''); " + options.bindObjectName + ".$$scope = _rootScope_; %>";
+        node.beforebegin = "<%" + indent + "/***/ var _rootScope_ = " + bindObjectName + ".bind($data, { root: true }, null, function (_output_, _scope_) { var " + options.out + " = ''; %>";
+        node.afterend = "<%" + indent + "/***/ _output_.push(" + options.out + "); }); var _output_ = []; _rootScope_.innerRender(_output_); " + options.out + " += _output_.join(''); " + bindObjectName + ".$$scope = _rootScope_; %>";
         return;
     }
     if (!node.tag) {
@@ -239,7 +272,7 @@ function compiler_art(node, options) {
     if (node.tag === ':template') {
         node.attrs.some(function (attr) {
             if (attr.name === 'name') {
-                node.overwriteNode = "<% " + options.out + " += " + options.bindObjectName + ".templateRender(" + JSON.stringify(attr.value) + ", _scope_, " + options.bindObjectName + ".bind); %>";
+                node.overwriteNode = "<% " + options.out + " += " + bindObjectName + ".templateRender(" + JSON.stringify(attr.value) + ", _scope_, " + bindObjectName + ".bind); %>";
                 return true;
             }
         });
@@ -258,7 +291,14 @@ function compiler_art(node, options) {
             value = attr.value;
         }
         else if (attr.name[0] === '@') {
-            value = "function (event) { " + attr.value + " }";
+            var arr = attr.name.split('.');
+            var trigger = arr[1];
+            if (trigger) {
+                value = "function (event) { if (" + bindObjectName + ".eventChecker(event, " + JSON.stringify(trigger) + ")) { " + attr.value + " }}";
+            }
+            else {
+                value = "function (event) { " + attr.value + " }";
+            }
             hasOverwriteAttr = true;
         }
         else {
@@ -271,13 +311,13 @@ function compiler_art(node, options) {
     }
     node.beforebegin = "";
     if (bindDataValue) {
-        node.beforebegin += "<%" + indent + "/***/ _output_.push(" + options.out + "); " + options.out + "=''; " + options.bindObjectName + ".bind(" + bindDataValue + ", _scope_, function (_output_, _scope_, holdInner) { var " + options.out + " = ''; %>";
+        node.beforebegin += "<%" + indent + "/***/ _output_.push(" + options.out + "); " + options.out + "=''; " + bindObjectName + ".bind(" + bindDataValue + ", _scope_, function (_output_, _scope_, holdInner) { var " + options.out + " = ''; %>";
         node.beforeend = "<%" + indent + "/***/ _scope_.innerRender = function(_output_) { var " + options.out + " = '';%>";
         node.afterbegin = "<%" + indent + "/***/ _output_.push(" + options.out + "); }; if (holdInner) { _output_.push(" + options.out + "); " + options.out + " = ''; _scope_.innerRender(_output_); } %>";
         node.afterend = "<%" + indent + "/***/ _output_.push(" + options.out + "); }).outerRender(_output_, true); %>";
     }
     varintAttrs += indent + "/***/ ];%>";
     node.beforebegin += varintAttrs;
-    node.overwriteAttrs = "<%- " + options.bindObjectName + "._attrsRender(_scope_, _attrs_) %>";
+    node.overwriteAttrs = "<%- " + bindObjectName + "._attrsRender(_scope_, _attrs_) %>";
 } /*</function>*/
 exports.compiler_art = compiler_art;

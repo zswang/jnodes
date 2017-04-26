@@ -207,5 +207,83 @@ describe("src/ts/Compiler/ejs.ts", function () {
   assert.equal(examplejs_printLines.join("\n"), "{\"tag\":\"span\",\"attrs\":[{\"name\":\"class\",\"value\":\"book\"}]}"); examplejs_printLines = [];
   });
           
+  it("jsdom@compiler_ejs:base keyup.enter", function (done) {
+    jsdom.env("  <div>\n    <script type=\"text/ejs\">\n    <input type=\"text\" @keyup.enter=\"pos.x = parseInt(this.value)\" value=\"-1\">\n    <div><button :bind=\"pos\" @click=\"pos.x++\">plus <%= pos.x %></button></div>\n    </script>\n  </div>", {
+        features: {
+          FetchExternalResources : ["script", "link"],
+          ProcessExternalResources: ["script"]
+        }
+      },
+      function (err, window) {
+        global.window = window;
+        ["document","navigator"].forEach(
+          function (key) {
+            global[key] = window[key];
+          }
+        );
+        assert.equal(err, null);
+        done();
+      }
+    );
+  });
+          
+  it("compiler_ejs:base keyup.enter", function () {
+    examplejs_printLines = [];
+  var data = {
+    tag: 'x',
+    pos: {
+      x: 1,
+    }
+  };
+  var div = document.querySelector('div');
+  var binder = jnodes.binder = new jnodes.Binder();
+
+  binder.registerCompiler('ejs', function (templateCode, bindObjectName) {
+    var node = jnodes.Parser.parse(templateCode);
+    var code = jnodes.Parser.build(node, bindObjectName, compiler_ejs);
+    return ejs.compile(code);
+  });
+
+  div.innerHTML = binder.templateCompiler('ejs', div.querySelector('script').innerHTML)(data);
+  var rootScope = binder.$$scope;
+  rootScope.element = div;
+
+  function keyChecker(event, trigger) {
+    switch (trigger) {
+      case 'enter':
+        return event.keyCode === 13;
+      case 'esc':
+        return event.keyCode === 27;
+    }
+  }
+
+  binder.registerChecker('keyup', keyChecker);
+
+  function findEventTarget(parent, target, selector) {
+    var elements = [].slice.call(parent.querySelectorAll(selector));
+    while (target && elements.indexOf(target) < 0) {
+      target = target.parentNode;
+    }
+    return target;
+  }
+
+  ['keydown', 'keyup'].forEach(function (eventName) {
+    div.addEventListener(eventName, function (e) {
+      var target = findEventTarget(div, e.target, '[' + binder._eventAttributePrefix + eventName + ']');
+      if (!target) {
+        return;
+      }
+      binder.triggerScopeEvent(e, target);
+    })
+  })
+
+  var e = document.createEvent('HTMLEvents');
+  e.initEvent('keyup', true, false);
+  e.keyCode = 13;
+  document.querySelector('input').dispatchEvent(e);
+  examplejs_print(document.querySelector('button').innerHTML.trim());
+  assert.equal(examplejs_printLines.join("\n"), "plus -1"); examplejs_printLines = [];
+  });
+          
 });
          

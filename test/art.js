@@ -19,7 +19,7 @@ describe("src/ts/Compiler/art.ts", function () {
   
 
   it("jsdom@compiler_art:base1", function (done) {
-    jsdom.env("  <div>\n    <script type=\"text/art\">\n    <h1 :class=\"{book: Math.random() > 0.5}\">Books</h1>\n    <ul :bind=\"books\" @create=\"books.loaded = 'done'\">\n    <% books.forEach(function (book) { %>\n      <li :bind=\"book\">\n        <:template name=\"book\"/>\n      </li>\n    <% }); %>\n    </ul>\n    </script>\n  </div>\n  <script type=\"text/art\" id=\"book\">\n  <a :href=\"id\"><%= title %></a>\n  </script>", {
+    jsdom.env("  <div>\n    <script type=\"text/art\">\n    <input type=\"text\" @keyup.enter=\"books.push({id: 4, title: this.value})\" value=\"new\">\n    <h1 :class=\"{book: Math.random() > 0.5}\">Books</h1>\n    <ul :bind=\"books\" @create=\"books.loaded = 'done'\">\n    <% books.forEach(function (book) { %>\n      <li :bind=\"book\">\n        <:template name=\"book\"/>\n      </li>\n    <% }); %>\n    </ul>\n    </script>\n  </div>\n  <script type=\"text/art\" id=\"book\">\n  <a :href=\"id\"><%= title %></a>\n  </script>", {
         features: {
           FetchExternalResources : ["script", "link"],
           ProcessExternalResources: ["script"]
@@ -71,29 +71,29 @@ describe("src/ts/Compiler/art.ts", function () {
       });
   };
 
-  jnodes.binder = new jnodes.Binder();
+  var binder = jnodes.binder = new jnodes.Binder();
   var books = [{id: 1, title: 'book1'}, {id: 2, title: 'book2'}, {id: 3, title: 'book3'}];
-  jnodes.binder.registerCompiler('art', function (templateCode, bindObjectName) {
+  binder.registerCompiler('art', function (templateCode, bindObjectName) {
     var node = jnodes.Parser.parse(templateCode);
     var code = jnodes.Parser.build(node, {
       bindObjectName: bindObjectName,
       out: (art.compile.Compiler && art.compile.Compiler.CONSTS.OUT) || '$out',
     }, compiler_art);
-    var imports = jnodes.binder._import || {};
+    var imports = binder._import || {};
     imports.jnodes = jnodes;
     imports.Math = Math;
     imports.$escape = escape;
     return art.compile(code, { imports: imports });
   });
-  var bookRender = jnodes.binder.templateCompiler('art', document.querySelector('#book').innerHTML);
-  jnodes.binder.registerTemplate('book', function (scope) {
+  var bookRender = binder.templateCompiler('art', document.querySelector('#book').innerHTML);
+  binder.registerTemplate('book', function (scope) {
     return bookRender(scope.model);
   });
   var div = document.querySelector('div');
-  div.innerHTML = jnodes.binder.templateCompiler('art', div.querySelector('script').innerHTML)({
+  div.innerHTML = binder.templateCompiler('art', div.querySelector('script').innerHTML)({
     books: books
   });
-  var rootScope = jnodes.binder.$$scope;
+  var rootScope = binder.$$scope;
   rootScope.element = null;
   rootScope.element = div;
 
@@ -111,15 +111,51 @@ describe("src/ts/Compiler/art.ts", function () {
   examplejs_print(div.querySelector('ul li a').innerHTML);
   assert.equal(examplejs_printLines.join("\n"), "Jane Eyre"); examplejs_printLines = [];
 
-  examplejs_print(jnodes.binder.scope(div) === rootScope);
+  examplejs_print(binder.scope(div) === rootScope);
   assert.equal(examplejs_printLines.join("\n"), "true"); examplejs_printLines = [];
 
-  examplejs_print(jnodes.binder.scope(div.querySelector('ul li a')).model.id === 1);
+  examplejs_print(binder.scope(div.querySelector('ul li a')).model.id === 1);
   assert.equal(examplejs_printLines.join("\n"), "true"); examplejs_printLines = [];
 
   books.shift();
-  examplejs_print(jnodes.binder.scope(div.querySelector('ul li a')).model.id === 2);
+  examplejs_print(binder.scope(div.querySelector('ul li a')).model.id === 2);
   assert.equal(examplejs_printLines.join("\n"), "true"); examplejs_printLines = [];
+
+  function keyChecker(event, trigger) {
+    switch (trigger) {
+      case 'enter':
+        return event.keyCode === 13;
+      case 'esc':
+        return event.keyCode === 27;
+    }
+  }
+
+  binder.registerChecker('keyup', keyChecker);
+
+  function findEventTarget(parent, target, selector) {
+    var elements = [].slice.call(parent.querySelectorAll(selector));
+    while (target && elements.indexOf(target) < 0) {
+      target = target.parentNode;
+    }
+    return target;
+  }
+
+  ['keydown', 'keyup'].forEach(function (eventName) {
+    div.addEventListener(eventName, function (e) {
+      var target = findEventTarget(div, e.target, '[' + binder._eventAttributePrefix + eventName + ']');
+      if (!target) {
+        return;
+      }
+      binder.triggerScopeEvent(e, target);
+    })
+  })
+
+  var e = document.createEvent('HTMLEvents');
+  e.initEvent('keyup', true, false);
+  e.keyCode = 13;
+  document.querySelector('input').dispatchEvent(e);
+  examplejs_print(document.querySelector('li:last-child').innerHTML.trim());
+  assert.equal(examplejs_printLines.join("\n"), "<a href=\"4\">new</a>"); examplejs_printLines = [];
   });
           
   it("jsdom@compiler_art:base2", function (done) {
@@ -242,7 +278,7 @@ describe("src/ts/Compiler/art.ts", function () {
   var node = {
     tag: ':template'
   };
-  compiler_art(node);
+  compiler_art(node, { bindObjectName: 'jnodes', out: '$out' });
   examplejs_print(JSON.stringify(node));
   assert.equal(examplejs_printLines.join("\n"), "{\"tag\":\":template\"}"); examplejs_printLines = [];
   });
@@ -256,7 +292,7 @@ describe("src/ts/Compiler/art.ts", function () {
       value: 'book'
     }]
   };
-  compiler_art(node);
+  compiler_art(node, { bindObjectName: 'jnodes', out: '$out' });
   examplejs_print(JSON.stringify(node));
   assert.equal(examplejs_printLines.join("\n"), "{\"tag\":\":template\",\"attrs\":[{\"name\":\"class\",\"value\":\"book\"}]}"); examplejs_printLines = [];
   });
@@ -270,7 +306,7 @@ describe("src/ts/Compiler/art.ts", function () {
       value: 'book',
     }]
   };
-  compiler_art(node);
+  compiler_art(node, { bindObjectName: 'jnodes', out: '$out' });
   examplejs_print(JSON.stringify(node));
   assert.equal(examplejs_printLines.join("\n"), "{\"tag\":\"span\",\"attrs\":[{\"name\":\"class\",\"value\":\"book\"}]}"); examplejs_printLines = [];
   });

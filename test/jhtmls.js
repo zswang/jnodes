@@ -42,8 +42,8 @@ describe("src/ts/Compiler/jhtmls.ts", function () {
   assert.equal(examplejs_printLines.join("\n"), "{\"tag\":\":template\",\"attrs\":[{\"name\":\"class\",\"value\":\"book\"}]}"); examplejs_printLines = [];
   });
           
-  it("jsdom@compiler_jhtmls:base3", function (done) {
-    jsdom.env("  <div>\n    <script type=\"text/jhtmls\">\n    <div><button @click=\"pos.x++\">plus x</button></div>\n    </script>\n  </div>", {
+  it("jsdom@compiler_jhtmls:base keyup.enter", function (done) {
+    jsdom.env("  <div>\n    <script type=\"text/jhtmls\">\n    <input type=\"text\" @keyup.enter=\"pos.x = parseInt(this.value)\" value=\"-1\">\n    <div><button :bind=\"pos\" @click=\"pos.x++\" @update.none=\"console.info('none')\">plus #{pos.x}</button></div>\n    </script>\n  </div>", {
         features: {
           FetchExternalResources : ["script", "link"],
           ProcessExternalResources: ["script"]
@@ -62,7 +62,7 @@ describe("src/ts/Compiler/jhtmls.ts", function () {
     );
   });
           
-  it("compiler_jhtmls:base3", function () {
+  it("compiler_jhtmls:base keyup.enter", function () {
     examplejs_printLines = [];
   var data = {
     tag: 'x',
@@ -71,6 +71,7 @@ describe("src/ts/Compiler/jhtmls.ts", function () {
     }
   };
   var div = document.querySelector('div');
+  var binder = jnodes.binder = new jnodes.Binder();
 
   jnodes.binder.registerCompiler('jhtmls', function (templateCode, bindObjectName) {
     var node = jnodes.Parser.parse(templateCode);
@@ -81,6 +82,42 @@ describe("src/ts/Compiler/jhtmls.ts", function () {
   div.innerHTML = jnodes.binder.templateCompiler('jhtmls', div.querySelector('script').innerHTML)(data);
   var rootScope = jnodes.binder.$$scope;
   rootScope.element = div;
+
+  function keyChecker(event, trigger) {
+    switch (trigger) {
+      case 'enter':
+        return event.keyCode === 13;
+      case 'esc':
+        return event.keyCode === 27;
+    }
+  }
+
+  binder.registerChecker('keyup', keyChecker);
+
+  function findEventTarget(parent, target, selector) {
+    var elements = [].slice.call(parent.querySelectorAll(selector));
+    while (target && elements.indexOf(target) < 0) {
+      target = target.parentNode;
+    }
+    return target;
+  }
+
+  ['keydown', 'keyup'].forEach(function (eventName) {
+    div.addEventListener(eventName, function (e) {
+      var target = findEventTarget(div, e.target, '[' + binder._eventAttributePrefix + eventName + ']');
+      if (!target) {
+        return;
+      }
+      binder.triggerScopeEvent(e, target);
+    })
+  })
+
+  var e = document.createEvent('HTMLEvents');
+  e.initEvent('keyup', true, false);
+  e.keyCode = 13;
+  document.querySelector('input').dispatchEvent(e);
+  examplejs_print(document.querySelector('button').innerHTML.trim());
+  assert.equal(examplejs_printLines.join("\n"), "plus -1"); examplejs_printLines = [];
   });
           
 });

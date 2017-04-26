@@ -106,6 +106,10 @@ interface Scope {
    * 是否关心生命周期
    */
   lifecycleDestroy?: boolean
+  /**
+   * 是否关心生命周期
+   */
+  lifecycleUpdate?: boolean
 }
 
 interface FindElementFunction {
@@ -126,6 +130,13 @@ interface TemplateCompilerFunction {
 
 interface TemplateRenderBindFunction {
   (templateName: string, scope: Scope): string
+}
+interface ElementEvent {
+  type: string
+  target: Element
+}
+interface EventCheckerFunction {
+  (eventType: ElementEvent, trigger: string): boolean
 }
 
 interface BinderOptions {
@@ -370,6 +381,7 @@ class Binder {
   _attrsRender: AttrsRenderFunction
   _templates: { [key: string]: TemplateRenderFunction }
   _compiler: { [key: string]: TemplateCompilerFunction }
+  _checkers: { [type: string]: EventCheckerFunction }
   _imports: object
 
   constructor(options?: BinderOptions) {
@@ -385,6 +397,7 @@ class Binder {
 
     this._templates = {}
     this._compiler = {}
+    this._checkers = {}
 
     this._findElement = options.findElement || ((scope: Scope): Element => {
       return document.querySelector(`[${this._scopeAttributeName}="${scope.id}"]`)
@@ -416,6 +429,7 @@ class Binder {
         }
       }
       this.lifecycleEvent(scope, 'create')
+      this.lifecycleEvent(scope, 'update')
     })
     this._attrsRender = options.attrsRender || ((scope: Scope, attrs: Attr[]): string => {
       if (!attrs) {
@@ -429,21 +443,24 @@ class Binder {
         }
 
         let name = attr.name.slice(1)
-        let values = []
         if (name === this._bindAttributeName) {
           name = this._scopeAttributeName
-          values.push(scope.id)
-        } else if (this._eventAttributePrefix && '@' === attr.name[0]) {
+        } else if ('@' === attr.name[0]) {
+          let arr = name.split('.')
+          name = arr[0]
           if (name === 'create') {
             scope.lifecycleCreate = true
           } else if (name === 'destroy') {
             scope.lifecycleDestroy = true
+          } else if (name === 'update') {
+            scope.lifecycleUpdate = true
           }
           name = this._eventAttributePrefix + name
         }
-        dictValues[name] = values
+        let values = dictValues[name] = dictValues[name] || []
         dictQuoteds[name] = attr.quoted
         if (name === this._scopeAttributeName) {
+          values.push(scope.id)
           return
         }
 
@@ -502,6 +519,18 @@ class Binder {
     return render(scope)
   }
 
+  registerChecker(eventType: string, checker: EventCheckerFunction) {
+    this._checkers[eventType] = checker;
+  }
+
+  eventChecker(event: ElementEvent, trigger: string): boolean {
+    let checker = this._checkers[event.type]
+    if (!checker) {
+      return
+    }
+    return checker(event, trigger)
+  }
+
   templateCompiler(templateType: string, templateCode: string) {
     let compiler = this._compiler[templateType]
     if (!compiler) {
@@ -529,8 +558,8 @@ class Binder {
 
         this.cleanChildren(item)
         scope.children = []
-        delete scope.methods;
-        delete scope.attrs;
+        delete scope.methods
+        delete scope.attrs
       })
     }
   }
@@ -542,22 +571,33 @@ class Binder {
    * @param parent 容器
    * @param type 类型
    */
-  lifecycleEvent(scope: Scope, type: 'create' | 'destroy') {
-    let parent = this.element(scope);
+  lifecycleEvent(scope: Scope, type: 'create' | 'destroy' | 'update') {
     function hasLifecycle(scope: Scope) {
+      if (type === 'update') {
+        if (scope.lifecycleUpdate) {
+          return true
+        }
+        return
+      }
       if ((type === 'create' && scope.lifecycleCreate) || (type === 'destroy' && scope.lifecycleDestroy)) {
-        return true;
+        return true
       }
       if (scope.children) {
-        return scope.children.some(hasLifecycle);
+        return scope.children.some(hasLifecycle)
       }
     }
+
     if (hasLifecycle(scope)) {
-      let elements = [].slice.apply(parent.querySelectorAll(`[${this._eventAttributePrefix}${type}]`))
-      elements.forEach((item) => {
-        this.triggerScopeEvent({ type: type }, item);
-        item.removeAttribute(`${this._eventAttributePrefix}${type}`);
-      });
+      let parent = this.element(scope)
+      if (type === 'update') {
+        this.triggerScopeEvent({ type: type, target: parent })
+      } else {
+        let elements = [].slice.apply(parent.querySelectorAll(`[${this._eventAttributePrefix}${type}]`))
+        elements.forEach((item) => {
+          this.triggerScopeEvent({ type: type, target: item })
+          item.removeAttribute(`${this._eventAttributePrefix}${type}`)
+        })
+      }
     }
   }
 
@@ -714,21 +754,25 @@ class Binder {
     binder.triggerScopeEvent({ type: 'click', target: element2 });
     ```
    */
-  triggerScopeEvent(event, target) {
-    target = target || event.target;
+  triggerScopeEvent(event: ElementEvent, target?: Element) {
+    target = target || event.target
     if (!target) {
-      return;
+      return
     }
-    let cmd = target.getAttribute(this._eventAttributePrefix + event.type);
+    let cmd = target.getAttribute(this._eventAttributePrefix + event.type)
     if (cmd && cmd[0] === '@') {
-      let scope = this.scope(target);
+      let scope = this.scope(target)
       if (!scope) {
-        return;
+        return
       }
-      let method = (scope.methods || {})[cmd]
-      if (method) {
-        method.call(target, event);
-      }
+      // forEach @1 @2 ...
+      cmd.replace(/@\w+/g, (all) => {
+        let method = (scope.methods || {})[all]
+        if (method) {
+          method.call(target, event)
+        }
+        return ''
+      })
     }
   }
 

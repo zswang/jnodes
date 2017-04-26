@@ -19,9 +19,12 @@
       var info = {
         createCount: 0,
         destroyCount: 0,
+        updateCount: 0,
       }
-      <h3 :bind="info">create count: #{info.createCount} --- destroy count: #{info.destroyCount}</h3>
+      <h3 :bind="info">create: #{info.createCount} --- destroy: #{info.destroyCount} --- update: #{info.updateCount}</h3>
       <div>
+        <input type="text" @keyup.enter="console.log('enter')" @keyup.esc="console.log('esc')">
+        <button @click="console.log(1)" @click="console.log(2)">test</button>
         <button @tap="books.shift()">remove</button>
         function _sort() {
           books.$$asc = -(books.$$asc || 1);
@@ -33,10 +36,10 @@
       </div>
       <ul :bind="books">
       books.forEach(function (book) {
-        <li :bind="book" class="book" :class="{ star: book.star }">
+        <li :bind="book" class="book" :class="{ star: book.star }" @update="info.updateCount++">
           #{book.title}
           if (book.star) {
-          <button @tap="book.star = !book.star" :bind="book.title" @create="info.createCount++" @destroy="info.destroyCount++">🌟</button>
+          <button @tap="book.star = !book.star" @create="info.createCount++" @destroy="info.destroyCount++">🌟</button>
           } else {
           <button @tap="book.star = !book.star">🌛</button>
           }
@@ -78,6 +81,36 @@
   h5tap(element, '[' + binder._eventAttributePrefix + 'tap]', function (element, e) {
     binder.triggerScopeEvent({ type: 'tap', target: element });
   });
+
+  function keyChecker(event, trigger) {
+    switch (trigger) {
+      case 'enter':
+        return event.keyCode === 13;
+      case 'esc':
+        return event.keyCode === 27;
+    }
+  }
+
+  binder.registerChecker('keyup', keyChecker);
+  binder.registerChecker('keydown', keyChecker);
+
+  function findEventTarget(parent, target, selector) {
+    var elements = [].slice.call(parent.querySelectorAll(selector));
+    while (target && elements.indexOf(target) < 0) {
+      target = target.parentNode;
+    }
+    return target;
+  }
+
+  ['click', 'dblclick', 'keydown', 'keyup', 'focusin', 'focusout'].forEach(function (eventName) {
+    element.addEventListener(eventName, function (e) {
+      var target = findEventTarget(element, e.target, '[' + binder._eventAttributePrefix + eventName + ']');
+      if (!target) {
+        return;
+      }
+      binder.triggerScopeEvent(e, target);
+    })
+  })
 
 })();
 </script>

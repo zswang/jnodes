@@ -28,11 +28,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
   console.log(JSON.stringify(node));
   // > {"tag":":template","attrs":[{"name":"class","value":"book"}]}
   ```
- * @example compiler_jhtmls:base3
+ * @example compiler_jhtmls:base keyup.enter
   ```html
   <div>
     <script type="text/jhtmls">
-    <div><button @click="pos.x++">plus x</button></div>
+    <input type="text" @keyup.enter="pos.x = parseInt(this.value)" value="-1">
+    <div><button :bind="pos" @click="pos.x++" @update.none="console.info('none')">plus #{pos.x}</button></div>
     </script>
   </div>
   ```
@@ -44,6 +45,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
     }
   };
   var div = document.querySelector('div');
+  var binder = jnodes.binder = new jnodes.Binder();
   jnodes.binder.registerCompiler('jhtmls', function (templateCode, bindObjectName) {
     var node = jnodes.Parser.parse(templateCode);
     var code = jnodes.Parser.build(node, bindObjectName, compiler_jhtmls);
@@ -52,6 +54,37 @@ Object.defineProperty(exports, "__esModule", { value: true });
   div.innerHTML = jnodes.binder.templateCompiler('jhtmls', div.querySelector('script').innerHTML)(data);
   var rootScope = jnodes.binder.$$scope;
   rootScope.element = div;
+  function keyChecker(event, trigger) {
+    switch (trigger) {
+      case 'enter':
+        return event.keyCode === 13;
+      case 'esc':
+        return event.keyCode === 27;
+    }
+  }
+  binder.registerChecker('keyup', keyChecker);
+  function findEventTarget(parent, target, selector) {
+    var elements = [].slice.call(parent.querySelectorAll(selector));
+    while (target && elements.indexOf(target) < 0) {
+      target = target.parentNode;
+    }
+    return target;
+  }
+  ['keydown', 'keyup'].forEach(function (eventName) {
+    div.addEventListener(eventName, function (e) {
+      var target = findEventTarget(div, e.target, '[' + binder._eventAttributePrefix + eventName + ']');
+      if (!target) {
+        return;
+      }
+      binder.triggerScopeEvent(e, target);
+    })
+  })
+  var e = document.createEvent('HTMLEvents');
+  e.initEvent('keyup', true, false);
+  e.keyCode = 13;
+  document.querySelector('input').dispatchEvent(e);
+  console.log(document.querySelector('button').innerHTML.trim());
+  // > plus -1
   ```
  */
 function compiler_jhtmls(node, bindObjectName) {
@@ -90,7 +123,14 @@ function compiler_jhtmls(node, bindObjectName) {
             value = attr.value;
         }
         else if (attr.name[0] === '@') {
-            value = "function (event) { with (" + bindObjectName + "._imports || {}) { " + attr.value + " }}";
+            var arr = attr.name.split('.');
+            var trigger = arr[1];
+            if (trigger) {
+                value = "function (event) { if (" + bindObjectName + ".eventChecker(event, " + JSON.stringify(trigger) + ")) { with (" + bindObjectName + "._imports || {}) { " + attr.value + " }}}";
+            }
+            else {
+                value = "function (event) { with (" + bindObjectName + "._imports || {}) { " + attr.value + " }}";
+            }
             hasOverwriteAttr = true;
         }
         else {

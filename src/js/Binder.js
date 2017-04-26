@@ -213,6 +213,7 @@ var Binder = (function () {
         this._imports = options.imports;
         this._templates = {};
         this._compiler = {};
+        this._checkers = {};
         this._findElement = options.findElement || (function (scope) {
             return document.querySelector("[" + _this._scopeAttributeName + "=\"" + scope.id + "\"]");
         });
@@ -246,6 +247,7 @@ var Binder = (function () {
                 }
             }
             _this.lifecycleEvent(scope, 'create');
+            _this.lifecycleEvent(scope, 'update');
         });
         this._attrsRender = options.attrsRender || (function (scope, attrs) {
             if (!attrs) {
@@ -258,23 +260,27 @@ var Binder = (function () {
                     return true;
                 }
                 var name = attr.name.slice(1);
-                var values = [];
                 if (name === _this._bindAttributeName) {
                     name = _this._scopeAttributeName;
-                    values.push(scope.id);
                 }
-                else if (_this._eventAttributePrefix && '@' === attr.name[0]) {
+                else if ('@' === attr.name[0]) {
+                    var arr = name.split('.');
+                    name = arr[0];
                     if (name === 'create') {
                         scope.lifecycleCreate = true;
                     }
                     else if (name === 'destroy') {
                         scope.lifecycleDestroy = true;
                     }
+                    else if (name === 'update') {
+                        scope.lifecycleUpdate = true;
+                    }
                     name = _this._eventAttributePrefix + name;
                 }
-                dictValues[name] = values;
+                var values = dictValues[name] = dictValues[name] || [];
                 dictQuoteds[name] = attr.quoted;
                 if (name === _this._scopeAttributeName) {
+                    values.push(scope.id);
                     return;
                 }
                 if (attr.value === '' || attr.value === null || attr.value === undefined ||
@@ -328,6 +334,16 @@ var Binder = (function () {
         }
         return render(scope);
     };
+    Binder.prototype.registerChecker = function (eventType, checker) {
+        this._checkers[eventType] = checker;
+    };
+    Binder.prototype.eventChecker = function (event, trigger) {
+        var checker = this._checkers[event.type];
+        if (!checker) {
+            return;
+        }
+        return checker(event, trigger);
+    };
     Binder.prototype.templateCompiler = function (templateType, templateCode) {
         var compiler = this._compiler[templateType];
         if (!compiler) {
@@ -367,8 +383,13 @@ var Binder = (function () {
      */
     Binder.prototype.lifecycleEvent = function (scope, type) {
         var _this = this;
-        var parent = this.element(scope);
         function hasLifecycle(scope) {
+            if (type === 'update') {
+                if (scope.lifecycleUpdate) {
+                    return true;
+                }
+                return;
+            }
             if ((type === 'create' && scope.lifecycleCreate) || (type === 'destroy' && scope.lifecycleDestroy)) {
                 return true;
             }
@@ -377,11 +398,17 @@ var Binder = (function () {
             }
         }
         if (hasLifecycle(scope)) {
-            var elements = [].slice.apply(parent.querySelectorAll("[" + this._eventAttributePrefix + type + "]"));
-            elements.forEach(function (item) {
-                _this.triggerScopeEvent({ type: type }, item);
-                item.removeAttribute("" + _this._eventAttributePrefix + type);
-            });
+            var parent_1 = this.element(scope);
+            if (type === 'update') {
+                this.triggerScopeEvent({ type: type, target: parent_1 });
+            }
+            else {
+                var elements = [].slice.apply(parent_1.querySelectorAll("[" + this._eventAttributePrefix + type + "]"));
+                elements.forEach(function (item) {
+                    _this.triggerScopeEvent({ type: type, target: item });
+                    item.removeAttribute("" + _this._eventAttributePrefix + type);
+                });
+            }
         }
     };
     /**
@@ -532,14 +559,18 @@ var Binder = (function () {
         }
         var cmd = target.getAttribute(this._eventAttributePrefix + event.type);
         if (cmd && cmd[0] === '@') {
-            var scope = this.scope(target);
-            if (!scope) {
+            var scope_1 = this.scope(target);
+            if (!scope_1) {
                 return;
             }
-            var method = (scope.methods || {})[cmd];
-            if (method) {
-                method.call(target, event);
-            }
+            // forEach @1 @2 ...
+            cmd.replace(/@\w+/g, function (all) {
+                var method = (scope_1.methods || {})[all];
+                if (method) {
+                    method.call(target, event);
+                }
+                return '';
+            });
         }
     };
     return Binder;
