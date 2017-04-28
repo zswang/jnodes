@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title></title>
+  <meta charset="utf8">
+  <style>
+    .star {
+      background: gray;
+    }
+    textarea {
+      width: 600px;
+      height: 800px;
+    }
+  </style>
+</head>
+<body>
+  <div id="books_jhtmls">
+    <script type="text/jhtmls">
+    var count = 0;
+    <ul :bind="books">
+      <li>star count: #{books.filter(function (book) { return book.star }).length} render: #{count++}</li>
+      books.forEach((book) => {
+      <li :depend="book" class="book" :class="{ star: book.star }">
+        #{book.title}<button @click="book.star = !book.star">star</button>
+      </li>
+      });
+    </ul>
+    </script>
+  </div>
+  <div id="books_ejs">
+    <script type="text/ejs">
+    <% var count = 0; %>
+    <ul :bind="books">
+      <li>star count: <%= books.filter(function (book) { return book.star }).length %> render: <%= count++ %></li>
+      <% books.forEach((book) => { %>
+      <li :depend="book" class="book" :class="{ star: book.star }">
+        <%= book.title %><button @click="book.star = !book.star">star</button>
+      </li>
+      <% }); %>
+    </ul>
+    </script>
+  </div>
+</body>
+<script src="../node_modules/jhtmls/jhtmls.js"></script>
+<script src="../node_modules/ejs/ejs.js"></script>
+<script src="../node_modules/h5tap/h5tap.js"></script>
+<script src="../jnodes.js"></script>
+<script src="../src/js/Compiler/jhtmls.js"></script>
+<script src="../src/js/Compiler/ejs.js"></script>
+<script src="books.js"></script>
+<script>
+(function () {
+  var rootData = {
+    books: books.slice(0, 10).map(function(book) {
+      book.star = false;
+      return book;
+    })
+  }
+
+  var pen_guid = 0;
+  function pen(element) {
+
+    var bindObjectName = 'binder' + (pen_guid++).toString(36);
+    var binder = jnodes.binder = new jnodes.Binder({
+      bindObjectName: 'jnodes.' + bindObjectName
+    });
+    jnodes[bindObjectName] = binder;
+
+    if (typeof element === 'string') {
+      element = document.querySelector(element);
+    }
+    var script = element.querySelector('script');
+    var root = jnodes.Parser.parse(script.innerHTML);
+    var type = script.getAttribute('type');
+    if (type === 'text/jhtmls') {
+      var template = jnodes.Parser.build(root, binder._bindObjectName, compiler_jhtmls);
+      element.innerHTML = jhtmls.render(template, rootData);
+    } else {
+      var template = jnodes.Parser.build(root, binder._bindObjectName, compiler_ejs);
+      element.innerHTML = ejs.render(template, rootData);
+    }
+    jnodes.binder.$$scope.element = element;
+
+    h5tap(element, '[' + binder._eventAttributePrefix + 'tap]', function (element, e) {
+      binder.triggerScopeEvent({ type: 'tap', target: element });
+    });
+
+    function keyChecker(event, trigger) {
+      switch (trigger) {
+        case 'enter':
+          return event.keyCode === 13;
+        case 'esc':
+          return event.keyCode === 27;
+      }
+    }
+
+    binder.registerChecker('keyup', keyChecker);
+    binder.registerChecker('keydown', keyChecker);
+
+    function findEventTarget(parent, target, selector) {
+      var elements = [].slice.call(parent.querySelectorAll(selector));
+      while (target && elements.indexOf(target) < 0) {
+        target = target.parentNode;
+      }
+      return target;
+    }
+
+    ['click', 'dblclick', 'keydown', 'keyup', 'focusin', 'focusout'].forEach(function (eventName) {
+      element.addEventListener(eventName, function (e) {
+        var target = findEventTarget(element, e.target, '[' + binder._eventAttributePrefix + eventName + ']');
+        if (!target) {
+          return;
+        }
+        binder.triggerScopeEvent(e, target);
+      })
+    })
+
+  }
+
+  pen('#books_jhtmls');
+  pen('#books_ejs');
+
+})();
+</script>
+</html>

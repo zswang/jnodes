@@ -86,7 +86,48 @@ Object.defineProperty(exports, "__esModule", { value: true });
   console.log(document.querySelector('button').innerHTML.trim());
   // > plus -1
   ```
- */
+ * @example compiler_jhtmls:base depend
+  ```html
+  <div>
+    <script type="text/jhtmls">
+    <div :bind="books">
+      <h4>#{books.filter(function (book) { return book.star; }).length}</h4>
+      <ul>
+      books.forEach(function (book) {
+        <li :depend="book">#{book.title}</li>
+      })
+      </ul>
+    </script>
+  </div>
+  ```
+  ```js
+  var data = {
+    books: [{
+      title: 'a',
+      star: false,
+    },{
+      title: 'b',
+      star: false,
+    }]
+  };
+  var div = document.querySelector('div');
+  var binder = jnodes.binder = new jnodes.Binder();
+  jnodes.binder.registerCompiler('jhtmls', function (templateCode, bindObjectName) {
+    var node = jnodes.Parser.parse(templateCode);
+    var code = jnodes.Parser.build(node, bindObjectName, compiler_jhtmls);
+    return jhtmls.render(code);
+  });
+  div.innerHTML = jnodes.binder.templateCompiler('jhtmls', div.querySelector('script').innerHTML)(data);
+  var rootScope = jnodes.binder.$$scope;
+  rootScope.element = div;
+  data.books[0].star = true;
+  console.log(div.querySelector('h4').innerHTML);
+  // > 1
+  data.books[1].star = true;
+  console.log(div.querySelector('h4').innerHTML);
+  // > 2
+  ```
+   */
 function compiler_jhtmls(node, bindObjectName) {
     var indent = node.indent || '';
     var inserFlag = "/***/ ";
@@ -112,12 +153,17 @@ function compiler_jhtmls(node, bindObjectName) {
     }
     var varintAttrs = "\n" + indent + inserFlag + "var _attrs_ = [\n";
     var hasOverwriteAttr;
-    var bindDataValue;
     node.attrs.forEach(function (attr) {
         var value;
         if (attr.name[0] === ':') {
             if (attr.name === ':bind') {
-                bindDataValue = attr.value;
+                node.beforebegin = "\n" + indent + inserFlag + bindObjectName + ".bind(" + attr.value + ", _scope_, function (_output_, _scope_, holdInner) {\n";
+                node.beforeend = "\n" + indent + inserFlag + "_scope_.innerRender = function(_output_) {\n";
+                node.afterbegin = "\n" + indent + inserFlag + "}; if (holdInner) { _scope_.innerRender(_output_); }\n";
+                node.afterend = "\n" + indent + inserFlag + "}).outerRender(_output_, true);\n";
+            }
+            else if (attr.name === ':depend') {
+                node.beforebegin = "\n" + indent + inserFlag + bindObjectName + ".depend(" + attr.value + ", _scope_);\n";
             }
             hasOverwriteAttr = true;
             value = attr.value;
@@ -141,13 +187,7 @@ function compiler_jhtmls(node, bindObjectName) {
     if (!hasOverwriteAttr) {
         return;
     }
-    node.beforebegin = '';
-    if (bindDataValue) {
-        node.beforebegin += "\n" + indent + inserFlag + bindObjectName + ".bind(" + bindDataValue + ", _scope_, function (_output_, _scope_, holdInner) {\n";
-        node.beforeend = "\n" + indent + inserFlag + "_scope_.innerRender = function(_output_) {\n";
-        node.afterbegin = "\n" + indent + inserFlag + "}; if (holdInner) { _scope_.innerRender(_output_); }\n";
-        node.afterend = "\n" + indent + inserFlag + "}).outerRender(_output_, true);\n";
-    }
+    node.beforebegin = node.beforebegin || '';
     varintAttrs += "" + indent + inserFlag + "];\n";
     node.beforebegin += varintAttrs;
     node.overwriteAttrs = "!#{" + bindObjectName + "._attrsRender(_scope_, _attrs_)}";

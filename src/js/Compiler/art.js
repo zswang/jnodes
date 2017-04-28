@@ -254,6 +254,54 @@ Object.defineProperty(exports, "__esModule", { value: true });
   console.log(JSON.stringify(node));
   // > {"tag":"span","attrs":[{"name":"class","value":"book"}]}
   ```
+ * @example compiler_art:base depend
+  ```html
+  <div>
+    <script type="text/art">
+    <div :bind="books">
+      <h4><%= books.filter(function (book) { return book.star; }).length %></h4>
+      <ul>
+      <% books.forEach(function (book) { %>
+        <li :depend="book">#{book.title}</li>
+      <% }); %>
+      </ul>
+    </script>
+  </div>
+  ```
+  ```js
+  var data = {
+    books: [{
+      title: 'a',
+      star: false,
+    },{
+      title: 'b',
+      star: false,
+    }]
+  };
+  var div = document.querySelector('div');
+  var binder = jnodes.binder = new jnodes.Binder();
+  jnodes.binder.registerCompiler('art', function (templateCode, bindObjectName) {
+    var node = jnodes.Parser.parse(templateCode);
+    var code = jnodes.Parser.build(node, {
+      bindObjectName: bindObjectName,
+      out: (art.compile.Compiler && art.compile.Compiler.CONSTS.OUT) || '$out',
+    }, compiler_art);
+    var imports = jnodes.binder._import || {};
+    imports.jnodes = jnodes;
+    imports.Math = Math;
+    imports.$escape = escape;
+    return art.compile(code, { imports: imports });
+  });
+  div.innerHTML = jnodes.binder.templateCompiler('art', div.querySelector('script').innerHTML)(data);
+  var rootScope = jnodes.binder.$$scope;
+  rootScope.element = div;
+  data.books[0].star = true;
+  console.log(div.querySelector('h4').innerHTML);
+  // > 1
+  data.books[1].star = true;
+  console.log(div.querySelector('h4').innerHTML);
+  // > 2
+  ```
    */
 function compiler_art(node, options) {
     var indent = node.indent || '';
@@ -280,12 +328,17 @@ function compiler_art(node, options) {
     }
     var varintAttrs = "<%" + indent + "/***/ var _attrs_ = [\n";
     var hasOverwriteAttr;
-    var bindDataValue;
     node.attrs.forEach(function (attr) {
         var value;
         if (attr.name[0] === ':') {
             if (attr.name === ':bind') {
-                bindDataValue = attr.value;
+                node.beforebegin += "<%" + indent + "/***/ _output_.push(" + options.out + "); " + options.out + "=''; " + bindObjectName + ".bind(" + attr.value + ", _scope_, function (_output_, _scope_, holdInner) { var " + options.out + " = ''; %>";
+                node.beforeend = "<%" + indent + "/***/ _scope_.innerRender = function(_output_) { var " + options.out + " = '';%>";
+                node.afterbegin = "<%" + indent + "/***/ _output_.push(" + options.out + "); }; if (holdInner) { _output_.push(" + options.out + "); " + options.out + " = ''; _scope_.innerRender(_output_); } %>";
+                node.afterend = "<%" + indent + "/***/ _output_.push(" + options.out + "); }).outerRender(_output_, true); %>";
+            }
+            else if (attr.name === ':depend') {
+                node.beforebegin = "<%" + indent + "/***/ " + bindObjectName + ".depend(" + attr.value + ", _scope_); %>";
             }
             hasOverwriteAttr = true;
             value = attr.value;
@@ -309,13 +362,7 @@ function compiler_art(node, options) {
     if (!hasOverwriteAttr) {
         return;
     }
-    node.beforebegin = "";
-    if (bindDataValue) {
-        node.beforebegin += "<%" + indent + "/***/ _output_.push(" + options.out + "); " + options.out + "=''; " + bindObjectName + ".bind(" + bindDataValue + ", _scope_, function (_output_, _scope_, holdInner) { var " + options.out + " = ''; %>";
-        node.beforeend = "<%" + indent + "/***/ _scope_.innerRender = function(_output_) { var " + options.out + " = '';%>";
-        node.afterbegin = "<%" + indent + "/***/ _output_.push(" + options.out + "); }; if (holdInner) { _output_.push(" + options.out + "); " + options.out + " = ''; _scope_.innerRender(_output_); } %>";
-        node.afterend = "<%" + indent + "/***/ _output_.push(" + options.out + "); }).outerRender(_output_, true); %>";
-    }
+    node.beforebegin = node.beforebegin || "";
     varintAttrs += indent + "/***/ ];%>";
     node.beforebegin += varintAttrs;
     node.overwriteAttrs = "<%- " + bindObjectName + "._attrsRender(_scope_, _attrs_) %>";

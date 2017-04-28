@@ -4,7 +4,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
     import="./Observer.js" depend="observer" trigger="release">*/
 var Observer_1 = require("./Observer"); /*</jdists>*/
 /*<function name="Binder" depend="observer">*/
-var guid = 0;
+var jnodes_guid = 0;
 /**
  * @example bind():base
   ```js
@@ -53,6 +53,85 @@ var guid = 0;
     }]
   };
   jnodes.binder.cleanChildren(scope);
+  jnodes.binder.update();
+  var scope = {
+    type: 'depend',
+    binder: jnodes.binder,
+    parent: {
+      type: 'bind',
+      binder: jnodes.binder,
+      model: {}
+    }
+  };
+  var data = { x: 1 };
+  jnodes.binder.observer(data, scope);
+  data.x = 2;
+  var scope = {
+    type: 'depend',
+    binder: jnodes.binder,
+    parent: {
+      type: 'depend',
+      binder: jnodes.binder,
+      model: {
+        $$binds: [{
+          id: 0,
+          type: 'bind',
+          binder: jnodes.binder,
+          model: {},
+        }, {
+          id: 0,
+          type: 'depend',
+          binder: jnodes.binder,
+          model: {},
+          parent: {
+            binder: jnodes.binder,
+            model: {},
+          }
+        }]
+      },
+    },
+  };
+  var data = { x: 1 };
+  jnodes.binder.observer(data, scope);
+  data.x = 2;
+  var parent = {
+    id: 0,
+    type: 'depend',
+    binder: jnodes.binder,
+    model: {},
+    parent: {
+      id: 0,
+      type: 'bind',
+      binder: jnodes.binder,
+      model: {
+        $$binds: [{
+          id: 0,
+          type: 'bind',
+          binder: jnodes.binder,
+          model: {},
+        }]
+      },
+    }
+  };
+  var scope = {
+    type: 'depend',
+    binder: jnodes.binder,
+    parent: {
+      type: 'depend',
+      binder: jnodes.binder,
+      model: {
+        $$binds: [{
+          id: 0,
+          type: 'bind',
+          binder: jnodes.binder,
+          model: {},
+        }, parent, parent]
+      },
+    },
+  };
+  var data = { x: 1 };
+  jnodes.binder.observer(data, scope);
+  data.x = 2;
   ```
  * @example bind():bind jhtmls
   ```html
@@ -327,7 +406,7 @@ var Binder = (function () {
                         });
                         break;
                     case 'function':
-                        var methodId = "@" + (guid++).toString(36);
+                        var methodId = "@" + (jnodes_guid++).toString(36);
                         scope.methods = scope.methods || {};
                         scope.methods[methodId] = attr.value;
                         values.push(methodId);
@@ -450,6 +529,7 @@ var Binder = (function () {
     Binder.prototype.bind = function (model, parent, outerBindRender, innerBindRender) {
         var _this = this;
         var scope = {
+            type: 'bind',
             model: model,
             parent: parent,
             binder: this,
@@ -478,11 +558,31 @@ var Binder = (function () {
                 return innerBindRender(output, scope);
             };
         }
-        scope.id = (guid++).toString(36);
+        scope.id = (jnodes_guid++).toString(36);
         this._binds[scope.id] = scope;
+        this.observer(model, scope);
+        return scope;
+    };
+    Binder.prototype.observer = function (model, scope) {
+        var parent = scope.parent;
         if (parent) {
             parent.children = parent.children || [];
             parent.children.push(scope);
+        }
+        function pushParents(parents, scope) {
+            var parent = scope.parent;
+            if (parent.model.$$binds) {
+                parent.model.$$binds.forEach(function (bind) {
+                    if (bind.type !== 'depend') {
+                        if (parents.indexOf(bind) < 0) {
+                            parents.push(bind);
+                        }
+                    }
+                    else {
+                        pushParents(parents, bind);
+                    }
+                });
+            }
         }
         // 只绑定对象类型
         if (model && typeof model === 'object') {
@@ -490,8 +590,17 @@ var Binder = (function () {
             if (!model.$$binds) {
                 model.$$binds = [scope];
                 Observer_1.observer(model, function () {
+                    var parents = [];
                     model.$$binds.forEach(function (scope) {
-                        scope.binder.update(scope);
+                        if (scope.type !== 'depend') {
+                            scope.binder.update(scope);
+                        }
+                        else {
+                            pushParents(parents, scope);
+                        }
+                    });
+                    parents.forEach(function (parent) {
+                        parent.binder.update(parent);
                     });
                 }, function (key) {
                     return key && key.slice(2) !== '$$';
@@ -501,6 +610,21 @@ var Binder = (function () {
                 model.$$binds.push(scope);
             }
         }
+    };
+    /**
+     * 声明依赖关系
+     *
+     * @param model 数据
+     * @param scope 被依赖的作用域
+     */
+    Binder.prototype.depend = function (model, parent) {
+        var scope = {
+            type: 'depend',
+            model: model,
+            parent: parent,
+            binder: this,
+        };
+        this.observer(model, scope);
         return scope;
     };
     /**
@@ -516,6 +640,9 @@ var Binder = (function () {
      * @param scope 作用域
      */
     Binder.prototype.update = function (scope) {
+        if (!scope) {
+            return;
+        }
         this._updateElement(this.element(scope), scope);
     };
     Binder.prototype.scope = function (id) {

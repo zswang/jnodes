@@ -120,5 +120,57 @@ describe("src/ts/Compiler/jhtmls.ts", function () {
   assert.equal(examplejs_printLines.join("\n"), "plus -1"); examplejs_printLines = [];
   });
           
+  it("jsdom@compiler_jhtmls:base depend", function (done) {
+    jsdom.env("  <div>\n    <script type=\"text/jhtmls\">\n    <div :bind=\"books\">\n      <h4>#{books.filter(function (book) { return book.star; }).length}</h4>\n      <ul>\n      books.forEach(function (book) {\n        <li :depend=\"book\">#{book.title}</li>\n      })\n      </ul>\n    </script>\n  </div>", {
+        features: {
+          FetchExternalResources : ["script", "link"],
+          ProcessExternalResources: ["script"]
+        }
+      },
+      function (err, window) {
+        global.window = window;
+        ["document","navigator"].forEach(
+          function (key) {
+            global[key] = window[key];
+          }
+        );
+        assert.equal(err, null);
+        done();
+      }
+    );
+  });
+          
+  it("compiler_jhtmls:base depend", function () {
+    examplejs_printLines = [];
+  var data = {
+    books: [{
+      title: 'a',
+      star: false,
+    },{
+      title: 'b',
+      star: false,
+    }]
+  };
+  var div = document.querySelector('div');
+  var binder = jnodes.binder = new jnodes.Binder();
+
+  jnodes.binder.registerCompiler('jhtmls', function (templateCode, bindObjectName) {
+    var node = jnodes.Parser.parse(templateCode);
+    var code = jnodes.Parser.build(node, bindObjectName, compiler_jhtmls);
+    return jhtmls.render(code);
+  });
+
+  div.innerHTML = jnodes.binder.templateCompiler('jhtmls', div.querySelector('script').innerHTML)(data);
+  var rootScope = jnodes.binder.$$scope;
+  rootScope.element = div;
+  data.books[0].star = true;
+  examplejs_print(div.querySelector('h4').innerHTML);
+  assert.equal(examplejs_printLines.join("\n"), "1"); examplejs_printLines = [];
+
+  data.books[1].star = true;
+  examplejs_print(div.querySelector('h4').innerHTML);
+  assert.equal(examplejs_printLines.join("\n"), "2"); examplejs_printLines = [];
+  });
+          
 });
          

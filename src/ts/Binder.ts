@@ -49,6 +49,7 @@ interface Attr {
  * 绑定作用域
  */
 interface Scope {
+  type?: 'bind' | 'depend'
   /**
    * ID
    */
@@ -151,7 +152,7 @@ interface BinderOptions {
 }
 
 /*<function name="Binder" depend="observer">*/
-let guid: number = 0
+let jnodes_guid: number = 0
 /**
  * @example bind():base
   ```js
@@ -204,6 +205,88 @@ let guid: number = 0
     }]
   };
   jnodes.binder.cleanChildren(scope);
+  jnodes.binder.update();
+
+  var scope = {
+    type: 'depend',
+    binder: jnodes.binder,
+    parent: {
+      type: 'bind',
+      binder: jnodes.binder,
+      model: {}
+    }
+  };
+  var data = { x: 1 };
+  jnodes.binder.observer(data, scope);
+  data.x = 2;
+
+  var scope = {
+    type: 'depend',
+    binder: jnodes.binder,
+    parent: {
+      type: 'depend',
+      binder: jnodes.binder,
+      model: {
+        $$binds: [{
+          id: 0,
+          type: 'bind',
+          binder: jnodes.binder,
+          model: {},
+        }, {
+          id: 0,
+          type: 'depend',
+          binder: jnodes.binder,
+          model: {},
+          parent: {
+            binder: jnodes.binder,
+            model: {},
+          }
+        }]
+      },
+    },
+  };
+  var data = { x: 1 };
+  jnodes.binder.observer(data, scope);
+  data.x = 2;
+
+  var parent = {
+    id: 0,
+    type: 'depend',
+    binder: jnodes.binder,
+    model: {},
+    parent: {
+      id: 0,
+      type: 'bind',
+      binder: jnodes.binder,
+      model: {
+        $$binds: [{
+          id: 0,
+          type: 'bind',
+          binder: jnodes.binder,
+          model: {},
+        }]
+      },
+    }
+  };
+  var scope = {
+    type: 'depend',
+    binder: jnodes.binder,
+    parent: {
+      type: 'depend',
+      binder: jnodes.binder,
+      model: {
+        $$binds: [{
+          id: 0,
+          type: 'bind',
+          binder: jnodes.binder,
+          model: {},
+        }, parent, parent]
+      },
+    },
+  };
+  var data = { x: 1 };
+  jnodes.binder.observer(data, scope);
+  data.x = 2;
   ```
  * @example bind():bind jhtmls
   ```html
@@ -511,7 +594,7 @@ class Binder {
             })
             break
           case 'function':
-            let methodId = `@${(guid++).toString(36)}`
+            let methodId = `@${(jnodes_guid++).toString(36)}`
             scope.methods = scope.methods || {}
             scope.methods[methodId] = attr.value
             values.push(methodId)
@@ -645,6 +728,7 @@ class Binder {
   ): Scope {
 
     let scope: Scope = {
+      type: 'bind',
       model: model,
       parent: parent,
       binder: this,
@@ -675,12 +759,33 @@ class Binder {
       }
     }
 
-    scope.id = (guid++).toString(36)
+    scope.id = (jnodes_guid++).toString(36)
     this._binds[scope.id] = scope
+    this.observer(model, scope);
 
+    return scope
+  }
+
+  observer(model: any, scope: Scope) {
+    let parent = scope.parent
     if (parent) {
       parent.children = parent.children || []
       parent.children.push(scope)
+    }
+
+    function pushParents(parents: Scope[], scope: Scope) {
+      let parent = scope.parent
+      if (parent.model.$$binds) {
+        parent.model.$$binds.forEach((bind) => {
+          if (bind.type !== 'depend') {
+            if (parents.indexOf(bind) < 0) {
+              parents.push(bind)
+            }
+          } else {
+            pushParents(parents, bind)
+          }
+        })
+      }
     }
 
     // 只绑定对象类型
@@ -689,8 +794,16 @@ class Binder {
       if (!model.$$binds) {
         model.$$binds = [scope]
         observer(model, () => {
-          model.$$binds.forEach((scope) => {
-            scope.binder.update(scope)
+          let parents = [];
+          model.$$binds.forEach((scope: Scope) => {
+            if (scope.type !== 'depend') {
+              scope.binder.update(scope)
+            } else {
+              pushParents(parents, scope)
+            }
+          })
+          parents.forEach((parent) => {
+            parent.binder.update(parent)
           })
         }, (key) => {
           return key && key.slice(2) !== '$$'
@@ -699,7 +812,22 @@ class Binder {
         model.$$binds.push(scope)
       }
     }
+  }
 
+  /**
+   * 声明依赖关系
+   *
+   * @param model 数据
+   * @param scope 被依赖的作用域
+   */
+  public depend(model: any, parent: Scope) {
+    let scope: Scope = {
+      type: 'depend',
+      model: model,
+      parent: parent,
+      binder: this,
+    }
+    this.observer(model, scope)
     return scope
   }
 
@@ -717,6 +845,9 @@ class Binder {
    * @param scope 作用域
    */
   public update(scope: Scope) {
+    if (!scope) {
+      return
+    }
     this._updateElement(this.element(scope), scope)
   }
 

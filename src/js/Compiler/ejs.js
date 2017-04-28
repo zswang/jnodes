@@ -221,7 +221,48 @@ Object.defineProperty(exports, "__esModule", { value: true });
   console.log(document.querySelector('button').innerHTML.trim());
   // > plus -1
   ```
-  */
+ * @example compiler_ejs:base depend
+  ```html
+  <div>
+    <script type="text/ejs">
+    <div :bind="books">
+      <h4><%= books.filter(function (book) { return book.star; }).length %></h4>
+      <ul>
+      <% books.forEach(function (book) { %>
+        <li :depend="book">#{book.title}</li>
+      <% }); %>
+      </ul>
+    </script>
+  </div>
+  ```
+  ```js
+  var data = {
+    books: [{
+      title: 'a',
+      star: false,
+    },{
+      title: 'b',
+      star: false,
+    }]
+  };
+  var div = document.querySelector('div');
+  var binder = jnodes.binder = new jnodes.Binder();
+  jnodes.binder.registerCompiler('ejs', function (templateCode, bindObjectName) {
+    var node = jnodes.Parser.parse(templateCode);
+    var code = jnodes.Parser.build(node, bindObjectName, compiler_ejs);
+    return ejs.compile(code);
+  });
+  div.innerHTML = jnodes.binder.templateCompiler('ejs', div.querySelector('script').innerHTML)(data);
+  var rootScope = jnodes.binder.$$scope;
+  rootScope.element = div;
+  data.books[0].star = true;
+  console.log(div.querySelector('h4').innerHTML);
+  // > 1
+  data.books[1].star = true;
+  console.log(div.querySelector('h4').innerHTML);
+  // > 2
+  ```
+   */
 function compiler_ejs(node, bindObjectName) {
     var indent = node.indent || '';
     if (node.type === 'root') {
@@ -246,12 +287,17 @@ function compiler_ejs(node, bindObjectName) {
     }
     var varintAttrs = "<%" + indent + "/***/ var _attrs_ = [\n";
     var hasOverwriteAttr;
-    var bindDataValue;
     node.attrs.forEach(function (attr) {
         var value;
         if (attr.name[0] === ':') {
             if (attr.name === ':bind') {
-                bindDataValue = attr.value;
+                node.beforebegin = "<%" + indent + "/***/ " + bindObjectName + ".bind(" + attr.value + ", _scope_, function (__output, _scope_, holdInner) { var __append = __output.push.bind(__output); %>";
+                node.beforeend = "<%" + indent + "/***/ _scope_.innerRender = function(__output) { var __append = __output.push.bind(__output); %>";
+                node.afterbegin = "<%" + indent + "/***/ }; if (holdInner) { _scope_.innerRender(__output); }%>";
+                node.afterend = "<%" + indent + "/***/ }).outerRender(__output, true); %>";
+            }
+            else if (attr.name === ':depend') {
+                node.beforebegin = "<%" + indent + "/***/ " + bindObjectName + ".depend(" + attr.value + ", _scope_); %>";
             }
             hasOverwriteAttr = true;
             value = attr.value;
@@ -275,13 +321,7 @@ function compiler_ejs(node, bindObjectName) {
     if (!hasOverwriteAttr) {
         return;
     }
-    node.beforebegin = "";
-    if (bindDataValue) {
-        node.beforebegin += "<%" + indent + "/***/ " + bindObjectName + ".bind(" + bindDataValue + ", _scope_, function (__output, _scope_, holdInner) { var __append = __output.push.bind(__output); %>";
-        node.beforeend = "<%" + indent + "/***/ _scope_.innerRender = function(__output) { var __append = __output.push.bind(__output); %>";
-        node.afterbegin = "<%" + indent + "/***/ }; if (holdInner) { _scope_.innerRender(__output); }%>";
-        node.afterend = "<%" + indent + "/***/ }).outerRender(__output, true); %>";
-    }
+    node.beforebegin = node.beforebegin || "";
     varintAttrs += indent + "/***/ ];%>";
     node.beforebegin += varintAttrs;
     node.overwriteAttrs = "<%- " + bindObjectName + "._attrsRender(_scope_, _attrs_) %>";

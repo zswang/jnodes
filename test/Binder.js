@@ -69,6 +69,88 @@ describe("src/ts/Binder.ts", function () {
     }]
   };
   jnodes.binder.cleanChildren(scope);
+  jnodes.binder.update();
+
+  var scope = {
+    type: 'depend',
+    binder: jnodes.binder,
+    parent: {
+      type: 'bind',
+      binder: jnodes.binder,
+      model: {}
+    }
+  };
+  var data = { x: 1 };
+  jnodes.binder.observer(data, scope);
+  data.x = 2;
+
+  var scope = {
+    type: 'depend',
+    binder: jnodes.binder,
+    parent: {
+      type: 'depend',
+      binder: jnodes.binder,
+      model: {
+        $$binds: [{
+          id: 0,
+          type: 'bind',
+          binder: jnodes.binder,
+          model: {},
+        }, {
+          id: 0,
+          type: 'depend',
+          binder: jnodes.binder,
+          model: {},
+          parent: {
+            binder: jnodes.binder,
+            model: {},
+          }
+        }]
+      },
+    },
+  };
+  var data = { x: 1 };
+  jnodes.binder.observer(data, scope);
+  data.x = 2;
+
+  var parent = {
+    id: 0,
+    type: 'depend',
+    binder: jnodes.binder,
+    model: {},
+    parent: {
+      id: 0,
+      type: 'bind',
+      binder: jnodes.binder,
+      model: {
+        $$binds: [{
+          id: 0,
+          type: 'bind',
+          binder: jnodes.binder,
+          model: {},
+        }]
+      },
+    }
+  };
+  var scope = {
+    type: 'depend',
+    binder: jnodes.binder,
+    parent: {
+      type: 'depend',
+      binder: jnodes.binder,
+      model: {
+        $$binds: [{
+          id: 0,
+          type: 'bind',
+          binder: jnodes.binder,
+          model: {},
+        }, parent, parent]
+      },
+    },
+  };
+  var data = { x: 1 };
+  jnodes.binder.observer(data, scope);
+  data.x = 2;
   });
           
   it("jsdom@bind():bind jhtmls", function (done) {
