@@ -58,7 +58,9 @@ describe("src/ts/Binder.ts", function () {
   var scope = {
     children: [{
       model: {
-        $$binds: []
+        $$binds: function () {
+          return [];
+        }
       }
     }]
   };
@@ -91,21 +93,23 @@ describe("src/ts/Binder.ts", function () {
       type: 'depend',
       binder: jnodes.binder,
       model: {
-        $$binds: [{
-          id: 0,
-          type: 'bind',
-          binder: jnodes.binder,
-          model: {},
-        }, {
-          id: 0,
-          type: 'depend',
-          binder: jnodes.binder,
-          model: {},
-          parent: {
+        $$binds: function () {
+          return [{
+            id: 0,
+            type: 'bind',
             binder: jnodes.binder,
             model: {},
-          }
-        }]
+          }, {
+            id: 0,
+            type: 'depend',
+            binder: jnodes.binder,
+            model: {},
+            parent: {
+              binder: jnodes.binder,
+              model: {},
+            }
+          }]
+        },
       },
     },
   };
@@ -113,6 +117,15 @@ describe("src/ts/Binder.ts", function () {
   jnodes.binder.observer(data, scope);
   data.x = 2;
 
+  var $$scope = {
+    id: 0,
+    type: 'bind',
+    binder: jnodes.binder,
+    model: {},
+  };
+  var $$binds = function() {
+    return [$$scope]
+  };
   var parent = {
     id: 0,
     type: 'depend',
@@ -123,12 +136,7 @@ describe("src/ts/Binder.ts", function () {
       type: 'bind',
       binder: jnodes.binder,
       model: {
-        $$binds: [{
-          id: 0,
-          type: 'bind',
-          binder: jnodes.binder,
-          model: {},
-        }]
+        $$binds: $$binds
       },
     }
   };
@@ -139,12 +147,14 @@ describe("src/ts/Binder.ts", function () {
       type: 'depend',
       binder: jnodes.binder,
       model: {
-        $$binds: [{
-          id: 0,
-          type: 'bind',
-          binder: jnodes.binder,
-          model: {},
-        }, parent, parent]
+        $$binds: function () {
+          return [{
+            id: 0,
+            type: 'bind',
+            binder: jnodes.binder,
+            model: {},
+          }, parent, parent]
+        }
       },
     },
   };

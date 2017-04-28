@@ -194,7 +194,9 @@ let jnodes_guid: number = 0
   var scope = {
     children: [{
       model: {
-        $$binds: []
+        $$binds: function () {
+          return [];
+        }
       }
     }]
   };
@@ -227,21 +229,23 @@ let jnodes_guid: number = 0
       type: 'depend',
       binder: jnodes.binder,
       model: {
-        $$binds: [{
-          id: 0,
-          type: 'bind',
-          binder: jnodes.binder,
-          model: {},
-        }, {
-          id: 0,
-          type: 'depend',
-          binder: jnodes.binder,
-          model: {},
-          parent: {
+        $$binds: function () {
+          return [{
+            id: 0,
+            type: 'bind',
             binder: jnodes.binder,
             model: {},
-          }
-        }]
+          }, {
+            id: 0,
+            type: 'depend',
+            binder: jnodes.binder,
+            model: {},
+            parent: {
+              binder: jnodes.binder,
+              model: {},
+            }
+          }]
+        },
       },
     },
   };
@@ -249,6 +253,15 @@ let jnodes_guid: number = 0
   jnodes.binder.observer(data, scope);
   data.x = 2;
 
+  var $$scope = {
+    id: 0,
+    type: 'bind',
+    binder: jnodes.binder,
+    model: {},
+  };
+  var $$binds = function() {
+    return [$$scope]
+  };
   var parent = {
     id: 0,
     type: 'depend',
@@ -259,12 +272,7 @@ let jnodes_guid: number = 0
       type: 'bind',
       binder: jnodes.binder,
       model: {
-        $$binds: [{
-          id: 0,
-          type: 'bind',
-          binder: jnodes.binder,
-          model: {},
-        }]
+        $$binds: $$binds
       },
     }
   };
@@ -275,12 +283,14 @@ let jnodes_guid: number = 0
       type: 'depend',
       binder: jnodes.binder,
       model: {
-        $$binds: [{
-          id: 0,
-          type: 'bind',
-          binder: jnodes.binder,
-          model: {},
-        }, parent, parent]
+        $$binds: function () {
+          return [{
+            id: 0,
+            type: 'bind',
+            binder: jnodes.binder,
+            model: {},
+          }, parent, parent]
+        }
       },
     },
   };

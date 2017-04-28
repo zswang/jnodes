@@ -194,7 +194,9 @@ var jnodes_guid = 0;
   var scope = {
     children: [{
       model: {
-        $$binds: []
+        $$binds: function () {
+          return [];
+        }
       }
     }]
   };
@@ -225,27 +227,37 @@ var jnodes_guid = 0;
       type: 'depend',
       binder: jnodes.binder,
       model: {
-        $$binds: [{
-          id: 0,
-          type: 'bind',
-          binder: jnodes.binder,
-          model: {},
-        }, {
-          id: 0,
-          type: 'depend',
-          binder: jnodes.binder,
-          model: {},
-          parent: {
+        $$binds: function () {
+          return [{
+            id: 0,
+            type: 'bind',
             binder: jnodes.binder,
             model: {},
-          }
-        }]
+          }, {
+            id: 0,
+            type: 'depend',
+            binder: jnodes.binder,
+            model: {},
+            parent: {
+              binder: jnodes.binder,
+              model: {},
+            }
+          }]
+        },
       },
     },
   };
   var data = { x: 1 };
   jnodes.binder.observer(data, scope);
   data.x = 2;
+  var $$binds = function() {
+    return [{
+      id: 0,
+      type: 'bind',
+      binder: jnodes.binder,
+      model: {},
+    }]
+  };
   var parent = {
     id: 0,
     type: 'depend',
@@ -256,12 +268,7 @@ var jnodes_guid = 0;
       type: 'bind',
       binder: jnodes.binder,
       model: {
-        $$binds: [{
-          id: 0,
-          type: 'bind',
-          binder: jnodes.binder,
-          model: {},
-        }]
+        $$binds: $$binds
       },
     }
   };
@@ -272,12 +279,14 @@ var jnodes_guid = 0;
       type: 'depend',
       binder: jnodes.binder,
       model: {
-        $$binds: [{
-          id: 0,
-          type: 'bind',
-          binder: jnodes.binder,
-          model: {},
-        }, parent, parent]
+        $$binds: function () {
+          return [{
+            id: 0,
+            type: 'bind',
+            binder: jnodes.binder,
+            model: {},
+          }, parent, parent]
+        }
       },
     },
   };
@@ -618,7 +627,7 @@ var Binder = (function () {
         var _this = this;
         if (scope.children) {
             scope.children.forEach(function (item) {
-                var binds = item.model && item.model.$$binds;
+                var binds = item.model && item.model.$$binds && item.model.$$binds();
                 if (binds) {
                     // remove scope
                     var index = binds.indexOf(item);
@@ -724,7 +733,7 @@ var Binder = (function () {
         function pushParents(parents, scope) {
             var parent = scope.parent;
             if (parent.model.$$binds) {
-                parent.model.$$binds.forEach(function (bind) {
+                parent.model.$$binds().forEach(function (bind) {
                     if (bind.type !== 'depend') {
                         if (parents.indexOf(bind) < 0) {
                             parents.push(bind);
@@ -740,10 +749,13 @@ var Binder = (function () {
         if (model && typeof model === 'object') {
             // 对象已经绑定过
             if (!model.$$binds) {
-                model.$$binds = [scope];
+                var binds_1 = [scope];
+                model.$$binds = function () {
+                    return binds_1;
+                };
                 observer(model, function () {
                     var parents = [];
-                    model.$$binds.forEach(function (scope) {
+                    model.$$binds().forEach(function (scope) {
                         if (scope.type !== 'depend') {
                             scope.binder.update(scope);
                         }
@@ -759,7 +771,7 @@ var Binder = (function () {
                 });
             }
             else {
-                model.$$binds.push(scope);
+                model.$$binds().push(scope);
             }
         }
     };
