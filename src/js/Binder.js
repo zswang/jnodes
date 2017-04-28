@@ -466,7 +466,7 @@ var Binder = (function () {
         var _this = this;
         if (scope.children) {
             scope.children.forEach(function (item) {
-                var binds = item.model && item.model.$$binds;
+                var binds = item.model && item.model.$$binds && item.model.$$binds();
                 if (binds) {
                     // remove scope
                     var index = binds.indexOf(item);
@@ -572,7 +572,7 @@ var Binder = (function () {
         function pushParents(parents, scope) {
             var parent = scope.parent;
             if (parent.model.$$binds) {
-                parent.model.$$binds.forEach(function (bind) {
+                parent.model.$$binds().forEach(function (bind) {
                     if (bind.type !== 'depend') {
                         if (parents.indexOf(bind) < 0) {
                             parents.push(bind);
@@ -588,10 +588,13 @@ var Binder = (function () {
         if (model && typeof model === 'object') {
             // 对象已经绑定过
             if (!model.$$binds) {
-                model.$$binds = [scope];
+                var binds_1 = [scope];
+                model.$$binds = function () {
+                    return binds_1;
+                };
                 Observer_1.observer(model, function () {
                     var parents = [];
-                    model.$$binds.forEach(function (scope) {
+                    model.$$binds().forEach(function (scope) {
                         if (scope.type !== 'depend') {
                             scope.binder.update(scope);
                         }
@@ -607,7 +610,7 @@ var Binder = (function () {
                 });
             }
             else {
-                model.$$binds.push(scope);
+                model.$$binds().push(scope);
             }
         }
     };

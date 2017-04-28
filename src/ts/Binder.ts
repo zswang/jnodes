@@ -660,7 +660,7 @@ class Binder {
     if (scope.children) {
       scope.children.forEach((item) => {
 
-        let binds = item.model && item.model.$$binds
+        let binds = item.model && item.model.$$binds && item.model.$$binds()
         if (binds) {
           // remove scope
           let index = binds.indexOf(item)
@@ -776,7 +776,7 @@ class Binder {
     function pushParents(parents: Scope[], scope: Scope) {
       let parent = scope.parent
       if (parent.model.$$binds) {
-        parent.model.$$binds.forEach((bind) => {
+        parent.model.$$binds().forEach((bind) => {
           if (bind.type !== 'depend') {
             if (parents.indexOf(bind) < 0) {
               parents.push(bind)
@@ -792,24 +792,27 @@ class Binder {
     if (model && typeof model === 'object') {
       // 对象已经绑定过
       if (!model.$$binds) {
-        model.$$binds = [scope]
+        let binds = [scope]
+        model.$$binds = function () {
+          return binds
+        }
         observer(model, () => {
           let parents = [];
-          model.$$binds.forEach((scope: Scope) => {
+          model.$$binds().forEach((scope: Scope) => {
             if (scope.type !== 'depend') {
               scope.binder.update(scope)
             } else {
               pushParents(parents, scope)
             }
           })
-          parents.forEach((parent) => {
+          parents.forEach((parent: Scope) => {
             parent.binder.update(parent)
           })
         }, (key) => {
           return key && key.slice(2) !== '$$'
         })
       } else {
-        model.$$binds.push(scope)
+        model.$$binds().push(scope)
       }
     }
   }
