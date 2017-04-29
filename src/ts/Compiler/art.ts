@@ -345,10 +345,11 @@ interface ArtCompilerOptions {
    */
 function compiler_art(node: H5Node, options: ArtCompilerOptions) {
   let indent = node.indent || ''
+  let inserFlag = `/***/ `
   let bindObjectName = options.bindObjectName
   if (node.type === 'root') {
-    node.beforebegin = `<%${indent}/***/ var _rootScope_ = ${bindObjectName}.bind($data, { root: true }, null, function (_output_, _scope_) { var ${options.out} = ''; %>`
-    node.afterend = `<%${indent}/***/ _output_.push(${options.out}); }); var _output_ = []; _rootScope_.innerRender(_output_); ${options.out} += _output_.join(''); ${bindObjectName}.$$scope = _rootScope_; %>`
+    node.beforebegin = `<%${indent}${inserFlag}var _rootScope_ = ${bindObjectName}.bind($data, { root: true }, null, function (_output_, _scope_) { var ${options.out} = ''; %>`
+    node.afterend = `<%${indent}${inserFlag}_output_.push(${options.out}); }); var _output_ = []; _rootScope_.innerRender(_output_); ${options.out} += _output_.join(''); ${bindObjectName}.$$scope = _rootScope_; %>`
     return
   }
 
@@ -370,18 +371,19 @@ function compiler_art(node: H5Node, options: ArtCompilerOptions) {
     return
   }
 
-  let varintAttrs = `<%${indent}/***/ var _attrs_ = [\n`
+  let varintAttrs = `<%${indent}${inserFlag}var _attrs_ = [\n`
   let hasOverwriteAttr
   node.attrs.forEach((attr) => {
     let value
     if (attr.name[0] === ':') {
       if (attr.name === ':bind') {
-        node.beforebegin += `<%${indent}/***/ _output_.push(${options.out}); ${options.out}=''; ${bindObjectName}.bind(${attr.value}, _scope_, function (_output_, _scope_, holdInner) { var ${options.out} = ''; %>`
-        node.beforeend = `<%${indent}/***/ _scope_.innerRender = function(_output_) { var ${options.out} = '';%>`
-        node.afterbegin = `<%${indent}/***/ _output_.push(${options.out}); }; if (holdInner) { _output_.push(${options.out}); ${options.out} = ''; _scope_.innerRender(_output_); } %>`
-        node.afterend = `<%${indent}/***/ _output_.push(${options.out}); }).outerRender(_output_, true); %>`
+        node.beforebegin += `<%${indent}${inserFlag}_output_.push(${options.out}); ${options.out}=''; ${bindObjectName}.bind(${attr.value}, _scope_, function (_output_, _scope_, holdInner) { var ${options.out} = ''; %>`
+        node.beforeend = `<%${indent}${inserFlag}_scope_.innerRender = function(_output_) { var ${options.out} = '';%>`
+        node.afterbegin = `<%${indent}${inserFlag}_output_.push(${options.out}); }; if (holdInner) { _output_.push(${options.out}); ${options.out} = ''; _scope_.innerRender(_output_); } %>`
+        node.afterend = `<%${indent}${inserFlag}_output_.push(${options.out}); }).outerRender(_output_, true); %>`
       } else if (attr.name === ':depend') {
-        node.beforebegin = `<%${indent}/***/ ${bindObjectName}.depend(${attr.value}, _scope_); %>`
+        node.beforebegin = `<%${indent}${inserFlag}${bindObjectName}.depend(${attr.value}, _scope_, function (__output, _scope_) { var ${options.out} = ''; %>`
+        node.afterend = `<%${indent}${inserFlag}_output_.push(${options.out}); }).outerRender(_output_, true); %>`
       }
       hasOverwriteAttr = true
       value = attr.value
@@ -397,7 +399,7 @@ function compiler_art(node: H5Node, options: ArtCompilerOptions) {
     } else {
       value = JSON.stringify(attr.value)
     }
-    varintAttrs += `${indent}/***/ { name: ${JSON.stringify(attr.name)}, value: ${value}, quoted: ${JSON.stringify(attr.quoted)}},\n`
+    varintAttrs += `${indent}${inserFlag}{ name: ${JSON.stringify(attr.name)}, value: ${value}, quoted: ${JSON.stringify(attr.quoted)}},\n`
   })
   if (!hasOverwriteAttr) {
     return
@@ -405,7 +407,7 @@ function compiler_art(node: H5Node, options: ArtCompilerOptions) {
 
   node.beforebegin = node.beforebegin || ``
 
-  varintAttrs += `${indent}/***/ ];%>`
+  varintAttrs += `${indent}${inserFlag}];%>`
   node.beforebegin += varintAttrs
   node.overwriteAttrs = `<%- ${bindObjectName}._attrsRender(_scope_, _attrs_) %>`
 } /*</function>*/

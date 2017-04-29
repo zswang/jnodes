@@ -145,6 +145,7 @@ interface BinderOptions {
   updateElement?: UpdateElementFunction
   attrsRender?: AttrsRenderFunction
   bindAttributeName?: string
+  dependAttributeName?: string
   scopeAttributeName?: string
   bindObjectName?: string
   eventAttributePrefix?: string
@@ -494,6 +495,7 @@ let jnodes_guid: number = 0
 class Binder {
   _binds: object
   _bindAttributeName: string
+  _dependAttributeName: string
   _scopeAttributeName: string
   _eventAttributePrefix: string
   _bindObjectName: string
@@ -512,6 +514,7 @@ class Binder {
 
     this._bindObjectName = options.bindObjectName || 'jnodes.binder'
     this._bindAttributeName = options.bindAttributeName || 'bind'
+    this._dependAttributeName = options.dependAttributeName || 'depend'
     this._scopeAttributeName = options.scopeAttributeName || `data-jnodes-scope`
     this._eventAttributePrefix = options.eventAttributePrefix || `data-jnodes-event-`
     this._imports = options.imports
@@ -564,7 +567,7 @@ class Binder {
         }
 
         let name = attr.name.slice(1)
-        if (name === this._bindAttributeName) {
+        if (name === this._bindAttributeName || name === this._dependAttributeName) {
           name = this._scopeAttributeName
         } else if ('@' === attr.name[0]) {
           let arr = name.split('.')
@@ -833,14 +836,19 @@ class Binder {
    * @param model 数据
    * @param scope 被依赖的作用域
    */
-  public depend(model: any, parent: Scope) {
+  public depend(model: any, parent: Scope, outerBindRender: OuterRenderBindFunction) {
     let scope: Scope = {
       type: 'depend',
       model: model,
       parent: parent,
       binder: this,
+      outerRender: (output) => {
+        return outerBindRender(output, scope, true)
+      },
     }
     this.observer(model, scope)
+    scope.id = (jnodes_guid++).toString(36)
+    this._binds[scope.id] = scope
     return scope
   }
 

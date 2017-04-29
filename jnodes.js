@@ -250,13 +250,14 @@ var jnodes_guid = 0;
   var data = { x: 1 };
   jnodes.binder.observer(data, scope);
   data.x = 2;
+  var $$scope = {
+    id: 0,
+    type: 'bind',
+    binder: jnodes.binder,
+    model: {},
+  };
   var $$binds = function() {
-    return [{
-      id: 0,
-      type: 'bind',
-      binder: jnodes.binder,
-      model: {},
-    }]
+    return [$$scope]
   };
   var parent = {
     id: 0,
@@ -474,6 +475,7 @@ var Binder = (function () {
         this._templates = {};
         this._bindObjectName = options.bindObjectName || 'jnodes.binder';
         this._bindAttributeName = options.bindAttributeName || 'bind';
+        this._dependAttributeName = options.dependAttributeName || 'depend';
         this._scopeAttributeName = options.scopeAttributeName || "data-jnodes-scope";
         this._eventAttributePrefix = options.eventAttributePrefix || "data-jnodes-event-";
         this._imports = options.imports;
@@ -526,7 +528,7 @@ var Binder = (function () {
                     return true;
                 }
                 var name = attr.name.slice(1);
-                if (name === _this._bindAttributeName) {
+                if (name === _this._bindAttributeName || name === _this._dependAttributeName) {
                     name = _this._scopeAttributeName;
                 }
                 else if ('@' === attr.name[0]) {
@@ -781,14 +783,19 @@ var Binder = (function () {
      * @param model 数据
      * @param scope 被依赖的作用域
      */
-    Binder.prototype.depend = function (model, parent) {
+    Binder.prototype.depend = function (model, parent, outerBindRender) {
         var scope = {
             type: 'depend',
             model: model,
             parent: parent,
             binder: this,
+            outerRender: function (output) {
+                return outerBindRender(output, scope, true);
+            },
         };
         this.observer(model, scope);
+        scope.id = (jnodes_guid++).toString(36);
+        this._binds[scope.id] = scope;
         return scope;
     };
     /**

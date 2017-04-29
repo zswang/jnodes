@@ -293,9 +293,10 @@ import { H5Node } from "../Types"
    */
 function compiler_ejs(node: H5Node, bindObjectName: string) {
   let indent = node.indent || ''
+  let inserFlag = `/***/ `
   if (node.type === 'root') {
-    node.beforebegin = `<%${indent}/***/ var _rootScope_ = ${bindObjectName}.bind(locals, { root: true }, null, function (__output, _scope_) { var __append = __output.push.bind(__output); %>`
-    node.afterend = `<%${indent}/***/ }); _rootScope_.innerRender(__output); ${bindObjectName}.$$scope = _rootScope_;%>`
+    node.beforebegin = `<%${indent}${inserFlag}var _rootScope_ = ${bindObjectName}.bind(locals, { root: true }, null, function (__output, _scope_) { var __append = __output.push.bind(__output); %>`
+    node.afterend = `<%${indent}${inserFlag}}); _rootScope_.innerRender(__output); ${bindObjectName}.$$scope = _rootScope_;%>`
     return
   }
 
@@ -310,25 +311,26 @@ function compiler_ejs(node: H5Node, bindObjectName: string) {
   if (node.tag === ':template') {
     node.attrs.some((attr) => {
       if (attr.name === 'name') {
-        node.overwriteNode = `<%${indent}/***/ __append(${bindObjectName}.templateRender(${JSON.stringify(attr.value)}, _scope_, ${bindObjectName}.bind)); %>`
+        node.overwriteNode = `<%${indent}${inserFlag}__append(${bindObjectName}.templateRender(${JSON.stringify(attr.value)}, _scope_, ${bindObjectName}.bind)); %>`
         return true
       }
     })
     return
   }
 
-  let varintAttrs = `<%${indent}/***/ var _attrs_ = [\n`
+  let varintAttrs = `<%${indent}${inserFlag}var _attrs_ = [\n`
   let hasOverwriteAttr
   node.attrs.forEach((attr) => {
     let value
     if (attr.name[0] === ':') {
       if (attr.name === ':bind') {
-        node.beforebegin = `<%${indent}/***/ ${bindObjectName}.bind(${attr.value}, _scope_, function (__output, _scope_, holdInner) { var __append = __output.push.bind(__output); %>`
-        node.beforeend = `<%${indent}/***/ _scope_.innerRender = function(__output) { var __append = __output.push.bind(__output); %>`
-        node.afterbegin = `<%${indent}/***/ }; if (holdInner) { _scope_.innerRender(__output); }%>`
-        node.afterend = `<%${indent}/***/ }).outerRender(__output, true); %>`
+        node.beforebegin = `<%${indent}${inserFlag}${bindObjectName}.bind(${attr.value}, _scope_, function (__output, _scope_, holdInner) { var __append = __output.push.bind(__output); %>`
+        node.beforeend = `<%${indent}${inserFlag}_scope_.innerRender = function(__output) { var __append = __output.push.bind(__output); %>`
+        node.afterbegin = `<%${indent}${inserFlag}}; if (holdInner) { _scope_.innerRender(__output); }%>`
+        node.afterend = `<%${indent}${inserFlag}}).outerRender(__output, true); %>`
       } else if (attr.name === ':depend') {
-        node.beforebegin = `<%${indent}/***/ ${bindObjectName}.depend(${attr.value}, _scope_); %>`
+        node.beforebegin = `<%${indent}${inserFlag}${bindObjectName}.depend(${attr.value}, _scope_, function (__output, _scope_) { var __append = __output.push.bind(__output); %>`
+        node.afterend = `<%${indent}${inserFlag}}).outerRender(__output); %>`
       }
       hasOverwriteAttr = true
       value = attr.value
@@ -344,14 +346,14 @@ function compiler_ejs(node: H5Node, bindObjectName: string) {
     } else {
       value = JSON.stringify(attr.value)
     }
-    varintAttrs += `${indent}/***/ { name: ${JSON.stringify(attr.name)}, value: ${value}, quoted: ${JSON.stringify(attr.quoted)}},\n`
+    varintAttrs += `${indent}${inserFlag}{ name: ${JSON.stringify(attr.name)}, value: ${value}, quoted: ${JSON.stringify(attr.quoted)}},\n`
   })
   if (!hasOverwriteAttr) {
     return
   }
 
   node.beforebegin = node.beforebegin || ``
-  varintAttrs += `${indent}/***/ ];%>`
+  varintAttrs += `${indent}${inserFlag}];%>`
   node.beforebegin += varintAttrs
   node.overwriteAttrs = `<%- ${bindObjectName}._attrsRender(_scope_, _attrs_) %>`
 } /*</function>*/

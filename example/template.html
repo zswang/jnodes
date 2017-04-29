@@ -46,31 +46,26 @@
 /***/     'name': ':cmd',
 /***/     'value': _sort,
 /***/   }];
-        <button !#{jnodes.binder.attrsRender(_scope_, attrs)}>sort</button>
+        <button !#{jnodes.binder._attrsRender(_scope_, attrs)}>sort</button>
       </div>
 /***/   jnodes.binder.bind(books, _scope_, function (_output_, _scope_, holdInner) {
 /***/     var attrs = [
 /***/       { name: ":bind", value: books, quoted: '"'},
 /***/     ];
-      <ul !#{jnodes.binder.attrsRender(_scope_, attrs)}>
+      <ul !#{jnodes.binder._attrsRender(_scope_, attrs)}>
 /***/     _scope_.innerRender = function(_output_) {
       books.forEach(function (book) {
-/***/       jnodes.binder.bind(book, _scope_, function (_output_, _scope_, holdInner) {
+/***/       jnodes.binder.depend(book, _scope_, function (_output_, _scope_) {
 /***/         var attrs = [
 /***/           { name: ":bind", value: book, quoted: '"'},
 /***/           { name: "class", value: "book", quoted: '"'},
 /***/           { name: ":class", value: { star: book.star }, quoted: '"' },
 /***/         ];
-        <li !#{jnodes.binder.attrsRender(_scope_, attrs)}>
-/***/         _scope_.innerRender = function(_output_) {
+        <li !#{jnodes.binder._attrsRender(_scope_, attrs)}>
           #{book.title}
-/***/           _output_.push(jnodes.binder.templateRender('button', _scope_, jnodes.bind));
-/***/         };
-/***/         if (holdInner) {
-/***/           _scope_.innerRender(_output_)
-/***/         }
+/***/           _output_.push(jnodes.binder.templateRender('button', _scope_));
         </li>
-/***/       }).outerRender(_output_, true);
+/***/       }).outerRender(_output_);
       });
 /***/     };
 /***/     if (holdInner) {

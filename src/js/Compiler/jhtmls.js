@@ -163,7 +163,8 @@ function compiler_jhtmls(node, bindObjectName) {
                 node.afterend = "\n" + indent + inserFlag + "}).outerRender(_output_, true);\n";
             }
             else if (attr.name === ':depend') {
-                node.beforebegin = "\n" + indent + inserFlag + bindObjectName + ".depend(" + attr.value + ", _scope_);\n";
+                node.beforebegin = "\n" + indent + inserFlag + bindObjectName + ".depend(" + attr.value + ", _scope_, function (_output_, _scope_) {\n";
+                node.afterend = "\n" + indent + inserFlag + "}).outerRender(_output_);\n";
             }
             hasOverwriteAttr = true;
             value = attr.value;
