@@ -26,9 +26,9 @@ global.jnodes = require('../jnodes.js');
 global.ejs = require('ejs');
 global.jhtmls = require('jhtmls');
 global.art = require('art-template/lib/template-web');
-global.compiler_jhtmls = require('../src/js/Compiler/jhtmls').compiler_jhtmls;
-global.compiler_ejs = require('../src/js/Compiler/ejs').compiler_ejs;
-global.compiler_art = require('../src/js/Compiler/art').compiler_art;
+global.adapter_jhtmls = require('../lib/Adapter/jhtmls').adapter_jhtmls;
+global.adapter_ejs = require('../lib/Adapter/ejs').adapter_ejs;
+global.adapter_art = require('../lib/Adapter/art').adapter_art;
       `
     }))
     .pipe(rename({
@@ -82,7 +82,7 @@ gulp.task('jdists', function() {
 })
 
 gulp.task('typescript', function () {
-  gulp.src('./src/ts/**/*.ts')
+  gulp.src('./src/ts/*.ts')
     .pipe(jdists({
       trigger: 'typescript'
     }))
@@ -92,6 +92,17 @@ gulp.task('typescript', function () {
     .pipe(gulp.dest('./src/js'))
 })
 
-gulp.task('build', ['typescript', 'jdists', 'example'])
-gulp.task('dist', ['typescript', 'jdists', 'example', 'uglify'])
-gulp.task('debug', ['typescript', 'jdists', 'connect', 'watch', 'open'])
+gulp.task('adapter', function () {
+  gulp.src('./src/ts/Adapter/*.ts')
+    .pipe(jdists({
+      trigger: 'typescript'
+    }))
+    .pipe(typescript({
+      target: 'ES5'
+    }))
+    .pipe(gulp.dest('./lib/Adapter'))
+})
+
+gulp.task('build', ['typescript', 'adapter', 'jdists', 'example'])
+gulp.task('dist', ['typescript', 'adapter', 'jdists', 'example', 'uglify'])
+gulp.task('debug', ['typescript', 'adapter', 'jdists', 'connect', 'watch', 'open'])

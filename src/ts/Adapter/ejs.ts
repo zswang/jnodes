@@ -1,12 +1,12 @@
 import { H5Node } from "../Types"
 
-/*<function name="compiler_ejs">*/
+/*<function name="adapter_ejs">*/
 /**
  * EJS 处理
  *
  * @param node
  * @param bindObjectName
- * @example compiler_ejs:base1
+ * @example adapter_ejs:base1
   ```html
   <div>
     <script type="text/ejs">
@@ -27,17 +27,17 @@ import { H5Node } from "../Types"
   ```js
   jnodes.binder = new jnodes.Binder();
   var books = [{id: 1, title: 'book1'}, {id: 2, title: 'book2'}, {id: 3, title: 'book3'}];
-  jnodes.binder.registerCompiler('ejs', function (templateCode, bindObjectName) {
+  jnodes.binder.registerAdapter('ejs', function (templateCode, bindObjectName) {
     var node = jnodes.Parser.parse(templateCode);
-    var code = jnodes.Parser.build(node, bindObjectName, compiler_ejs);
+    var code = jnodes.Parser.build(node, bindObjectName, adapter_ejs);
     return ejs.compile(code);
   });
-  var bookRender = jnodes.binder.templateCompiler('ejs', document.querySelector('#book').innerHTML);
+  var bookRender = jnodes.binder.templateAdapter('ejs', document.querySelector('#book').innerHTML);
   jnodes.binder.registerTemplate('book', function (scope) {
     return bookRender(scope.model);
   });
   var div = document.querySelector('div');
-  div.innerHTML = jnodes.binder.templateCompiler('ejs', div.querySelector('script').innerHTML)({
+  div.innerHTML = jnodes.binder.templateAdapter('ejs', div.querySelector('script').innerHTML)({
     books: books
   });
   var rootScope = jnodes.binder.$$scope;
@@ -68,7 +68,7 @@ import { H5Node } from "../Types"
   console.log(jnodes.binder.scope(div.querySelector('ul li a')).model.id === 2);
   // > true
   ```
- * @example compiler_ejs:base2
+ * @example adapter_ejs:base2
   ```html
   <div>
     <script type="text/ejs">
@@ -87,14 +87,14 @@ import { H5Node } from "../Types"
   jnodes.binder = new jnodes.Binder({});
 
   var books = [{id: 1, title: 'book1', star: false}, {id: 2, title: 'book2', star: false}, {id: 3, title: 'book3', star: false}];
-  jnodes.binder.registerCompiler('ejs', function (templateCode, bindObjectName) {
+  jnodes.binder.registerAdapter('ejs', function (templateCode, bindObjectName) {
     var node = jnodes.Parser.parse(templateCode);
-    var code = jnodes.Parser.build(node, bindObjectName, compiler_ejs);
+    var code = jnodes.Parser.build(node, bindObjectName, adapter_ejs);
     return ejs.compile(code);
   });
 
   var div = document.querySelector('div');
-  div.innerHTML = jnodes.binder.templateCompiler('ejs', div.querySelector('script').innerHTML)({
+  div.innerHTML = jnodes.binder.templateAdapter('ejs', div.querySelector('script').innerHTML)({
     books: books
   });
   var rootScope = jnodes.binder.$$scope;
@@ -146,16 +146,16 @@ import { H5Node } from "../Types"
   console.log(li.className);
   // > star
   ```
- * @example compiler_ejs:base3
+ * @example adapter_ejs:base3
   ```js
   var node = {
     tag: ':template'
   };
-  compiler_ejs(node);
+  adapter_ejs(node);
   console.log(JSON.stringify(node));
   // > {"tag":":template"}
   ```
- * @example compiler_ejs:base4
+ * @example adapter_ejs:base4
   ```js
   var node = {
     tag: ':template',
@@ -164,11 +164,11 @@ import { H5Node } from "../Types"
       value: 'book'
     }]
   };
-  compiler_ejs(node);
+  adapter_ejs(node);
   console.log(JSON.stringify(node));
   // > {"tag":":template","attrs":[{"name":"class","value":"book"}]}
   ```
- * @example compiler_ejs:base5
+ * @example adapter_ejs:base5
   ```js
   var node = {
     tag: 'span',
@@ -177,11 +177,11 @@ import { H5Node } from "../Types"
       value: 'book',
     }]
   };
-  compiler_ejs(node);
+  adapter_ejs(node);
   console.log(JSON.stringify(node));
   // > {"tag":"span","attrs":[{"name":"class","value":"book"}]}
   ```
- * @example compiler_ejs:base keyup.enter
+ * @example adapter_ejs:base keyup.enter
   ```html
   <div>
     <script type="text/ejs">
@@ -200,13 +200,13 @@ import { H5Node } from "../Types"
   var div = document.querySelector('div');
   var binder = jnodes.binder = new jnodes.Binder();
 
-  binder.registerCompiler('ejs', function (templateCode, bindObjectName) {
+  binder.registerAdapter('ejs', function (templateCode, bindObjectName) {
     var node = jnodes.Parser.parse(templateCode);
-    var code = jnodes.Parser.build(node, bindObjectName, compiler_ejs);
+    var code = jnodes.Parser.build(node, bindObjectName, adapter_ejs);
     return ejs.compile(code);
   });
 
-  div.innerHTML = binder.templateCompiler('ejs', div.querySelector('script').innerHTML)(data);
+  div.innerHTML = binder.templateAdapter('ejs', div.querySelector('script').innerHTML)(data);
   var rootScope = binder.$$scope;
   rootScope.element = div;
 
@@ -246,7 +246,7 @@ import { H5Node } from "../Types"
   console.log(document.querySelector('button').innerHTML.trim());
   // > plus -1
   ```
- * @example compiler_ejs:base depend
+ * @example adapter_ejs:base depend
   ```html
   <div>
     <script type="text/ejs">
@@ -273,13 +273,13 @@ import { H5Node } from "../Types"
   var div = document.querySelector('div');
   var binder = jnodes.binder = new jnodes.Binder();
 
-  jnodes.binder.registerCompiler('ejs', function (templateCode, bindObjectName) {
+  jnodes.binder.registerAdapter('ejs', function (templateCode, bindObjectName) {
     var node = jnodes.Parser.parse(templateCode);
-    var code = jnodes.Parser.build(node, bindObjectName, compiler_ejs);
+    var code = jnodes.Parser.build(node, bindObjectName, adapter_ejs);
     return ejs.compile(code);
   });
 
-  div.innerHTML = jnodes.binder.templateCompiler('ejs', div.querySelector('script').innerHTML)(data);
+  div.innerHTML = jnodes.binder.templateAdapter('ejs', div.querySelector('script').innerHTML)(data);
   var rootScope = jnodes.binder.$$scope;
   rootScope.element = div;
   data.books[0].star = true;
@@ -291,7 +291,7 @@ import { H5Node } from "../Types"
   // > 2
   ```
    */
-function compiler_ejs(node: H5Node, bindObjectName: string) {
+function adapter_ejs(node: H5Node, bindObjectName: string) {
   let indent = node.indent || ''
   let inserFlag = `/***/ `
   if (node.type === 'root') {
@@ -359,5 +359,5 @@ function compiler_ejs(node: H5Node, bindObjectName: string) {
 } /*</function>*/
 
 export {
-  compiler_ejs
+  adapter_ejs
 }

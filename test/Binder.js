@@ -3,9 +3,9 @@ global.jnodes = require('../jnodes.js');
 global.ejs = require('ejs');
 global.jhtmls = require('jhtmls');
 global.art = require('art-template/lib/template-web');
-global.compiler_jhtmls = require('../src/js/Compiler/jhtmls').compiler_jhtmls;
-global.compiler_ejs = require('../src/js/Compiler/ejs').compiler_ejs;
-global.compiler_art = require('../src/js/Compiler/art').compiler_art;
+global.adapter_jhtmls = require('../lib/Adapter/jhtmls').adapter_jhtmls;
+global.adapter_ejs = require('../lib/Adapter/ejs').adapter_ejs;
+global.adapter_art = require('../lib/Adapter/art').adapter_art;
       
 
 describe("src/ts/Binder.ts", function () {
@@ -49,7 +49,7 @@ describe("src/ts/Binder.ts", function () {
 
   examplejs_print(JSON.stringify(jnodes.binder.scope('none')));
   assert.equal(examplejs_printLines.join("\n"), "undefined"); examplejs_printLines = [];
-  examplejs_print(JSON.stringify(jnodes.binder.templateCompiler('none')));
+  examplejs_print(JSON.stringify(jnodes.binder.templateAdapter('none')));
   assert.equal(examplejs_printLines.join("\n"), "undefined"); examplejs_printLines = [];
   examplejs_print(JSON.stringify(jnodes.binder.templateRender('none')));
   assert.equal(examplejs_printLines.join("\n"), "undefined"); examplejs_printLines = [];
@@ -187,17 +187,17 @@ describe("src/ts/Binder.ts", function () {
     examplejs_printLines = [];
   jnodes.binder = new jnodes.Binder();
   var books = [{id: 1, title: 'book1'}, {id: 2, title: 'book2'}, {id: 3, title: 'book3'}];
-  jnodes.binder.registerCompiler('jhtmls', function (templateCode, bindObjectName) {
+  jnodes.binder.registerAdapter('jhtmls', function (templateCode, bindObjectName) {
     var node = jnodes.Parser.parse(templateCode);
-    var code = jnodes.Parser.build(node, bindObjectName, compiler_jhtmls);
+    var code = jnodes.Parser.build(node, bindObjectName, adapter_jhtmls);
     return jhtmls.render(code);
   });
-  var bookRender = jnodes.binder.templateCompiler('jhtmls', document.querySelector('#book').innerHTML);
+  var bookRender = jnodes.binder.templateAdapter('jhtmls', document.querySelector('#book').innerHTML);
   jnodes.binder.registerTemplate('book', function (scope) {
     return bookRender(scope.model);
   });
   var div = document.querySelector('div');
-  div.innerHTML = jnodes.binder.templateCompiler('jhtmls', div.querySelector('script').innerHTML)({
+  div.innerHTML = jnodes.binder.templateAdapter('jhtmls', div.querySelector('script').innerHTML)({
     books: books
   });
   var rootScope = jnodes.binder.$$scope;
@@ -254,14 +254,14 @@ describe("src/ts/Binder.ts", function () {
   jnodes.binder = new jnodes.Binder({});
 
   var books = [{id: 1, title: 'book1', star: false}, {id: 2, title: 'book2', star: false}, {id: 3, title: 'book3', star: false}];
-  jnodes.binder.registerCompiler('jhtmls', function (templateCode, bindObjectName) {
+  jnodes.binder.registerAdapter('jhtmls', function (templateCode, bindObjectName) {
     var node = jnodes.Parser.parse(templateCode);
-    var code = jnodes.Parser.build(node, bindObjectName, compiler_jhtmls);
+    var code = jnodes.Parser.build(node, bindObjectName, adapter_jhtmls);
     return jhtmls.render(code);
   });
 
   var div = document.querySelector('div');
-  div.innerHTML = jnodes.binder.templateCompiler('jhtmls', div.querySelector('script').innerHTML)({
+  div.innerHTML = jnodes.binder.templateAdapter('jhtmls', div.querySelector('script').innerHTML)({
     books: books
   });
   var rootScope = jnodes.binder.$$scope;
@@ -364,12 +364,12 @@ describe("src/ts/Binder.ts", function () {
   var binder = new jnodes.Binder();
   var data = { checked: false };
   var div = document.querySelector('div');
-  jnodes.binder.registerCompiler('jhtmls', function (templateCode, bindObjectName) {
+  jnodes.binder.registerAdapter('jhtmls', function (templateCode, bindObjectName) {
     var node = jnodes.Parser.parse(templateCode);
-    var code = jnodes.Parser.build(node, bindObjectName, compiler_jhtmls);
+    var code = jnodes.Parser.build(node, bindObjectName, adapter_jhtmls);
     return jhtmls.render(code);
   });
-  div.innerHTML = jnodes.binder.templateCompiler('jhtmls', div.querySelector('script').innerHTML)(data);
+  div.innerHTML = jnodes.binder.templateAdapter('jhtmls', div.querySelector('script').innerHTML)(data);
   var rootScope = jnodes.binder.$$scope;
   rootScope.element = div;
 

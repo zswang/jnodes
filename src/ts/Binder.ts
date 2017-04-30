@@ -125,7 +125,7 @@ interface TemplateRenderFunction {
   (scope: Scope): string
 }
 
-interface TemplateCompilerFunction {
+interface TemplateAdapterFunction {
   (templateCode: string, bindObjectName: string)
 }
 
@@ -186,7 +186,7 @@ let jnodes_guid: number = 0
 
   console.log(JSON.stringify(jnodes.binder.scope('none')));
   // > undefined
-  console.log(JSON.stringify(jnodes.binder.templateCompiler('none')));
+  console.log(JSON.stringify(jnodes.binder.templateAdapter('none')));
   // > undefined
   console.log(JSON.stringify(jnodes.binder.templateRender('none')));
   // > undefined
@@ -320,17 +320,17 @@ let jnodes_guid: number = 0
   ```js
   jnodes.binder = new jnodes.Binder();
   var books = [{id: 1, title: 'book1'}, {id: 2, title: 'book2'}, {id: 3, title: 'book3'}];
-  jnodes.binder.registerCompiler('jhtmls', function (templateCode, bindObjectName) {
+  jnodes.binder.registerAdapter('jhtmls', function (templateCode, bindObjectName) {
     var node = jnodes.Parser.parse(templateCode);
-    var code = jnodes.Parser.build(node, bindObjectName, compiler_jhtmls);
+    var code = jnodes.Parser.build(node, bindObjectName, adapter_jhtmls);
     return jhtmls.render(code);
   });
-  var bookRender = jnodes.binder.templateCompiler('jhtmls', document.querySelector('#book').innerHTML);
+  var bookRender = jnodes.binder.templateAdapter('jhtmls', document.querySelector('#book').innerHTML);
   jnodes.binder.registerTemplate('book', function (scope) {
     return bookRender(scope.model);
   });
   var div = document.querySelector('div');
-  div.innerHTML = jnodes.binder.templateCompiler('jhtmls', div.querySelector('script').innerHTML)({
+  div.innerHTML = jnodes.binder.templateAdapter('jhtmls', div.querySelector('script').innerHTML)({
     books: books
   });
   var rootScope = jnodes.binder.$$scope;
@@ -380,14 +380,14 @@ let jnodes_guid: number = 0
   jnodes.binder = new jnodes.Binder({});
 
   var books = [{id: 1, title: 'book1', star: false}, {id: 2, title: 'book2', star: false}, {id: 3, title: 'book3', star: false}];
-  jnodes.binder.registerCompiler('jhtmls', function (templateCode, bindObjectName) {
+  jnodes.binder.registerAdapter('jhtmls', function (templateCode, bindObjectName) {
     var node = jnodes.Parser.parse(templateCode);
-    var code = jnodes.Parser.build(node, bindObjectName, compiler_jhtmls);
+    var code = jnodes.Parser.build(node, bindObjectName, adapter_jhtmls);
     return jhtmls.render(code);
   });
 
   var div = document.querySelector('div');
-  div.innerHTML = jnodes.binder.templateCompiler('jhtmls', div.querySelector('script').innerHTML)({
+  div.innerHTML = jnodes.binder.templateAdapter('jhtmls', div.querySelector('script').innerHTML)({
     books: books
   });
   var rootScope = jnodes.binder.$$scope;
@@ -475,12 +475,12 @@ let jnodes_guid: number = 0
   var binder = new jnodes.Binder();
   var data = { checked: false };
   var div = document.querySelector('div');
-  jnodes.binder.registerCompiler('jhtmls', function (templateCode, bindObjectName) {
+  jnodes.binder.registerAdapter('jhtmls', function (templateCode, bindObjectName) {
     var node = jnodes.Parser.parse(templateCode);
-    var code = jnodes.Parser.build(node, bindObjectName, compiler_jhtmls);
+    var code = jnodes.Parser.build(node, bindObjectName, adapter_jhtmls);
     return jhtmls.render(code);
   });
-  div.innerHTML = jnodes.binder.templateCompiler('jhtmls', div.querySelector('script').innerHTML)(data);
+  div.innerHTML = jnodes.binder.templateAdapter('jhtmls', div.querySelector('script').innerHTML)(data);
   var rootScope = jnodes.binder.$$scope;
   rootScope.element = div;
 
@@ -503,14 +503,16 @@ class Binder {
   _updateElement: UpdateElementFunction
   _attrsRender: AttrsRenderFunction
   _templates: { [key: string]: TemplateRenderFunction }
-  _compiler: { [key: string]: TemplateCompilerFunction }
   _checkers: { [type: string]: EventCheckerFunction }
+  _adapters: { [key: string]: TemplateAdapterFunction } = {}
   _imports: object
+
 
   constructor(options?: BinderOptions) {
     options = options || {}
     this._binds = {}
     this._templates = {}
+    this._adapters = {}
 
     this._bindObjectName = options.bindObjectName || 'jnodes.binder'
     this._bindAttributeName = options.bindAttributeName || 'bind'
@@ -520,7 +522,6 @@ class Binder {
     this._imports = options.imports
 
     this._templates = {}
-    this._compiler = {}
     this._checkers = {}
 
     this._findElement = options.findElement || ((scope: Scope): Element => {
@@ -658,15 +659,15 @@ class Binder {
     return checker(event, trigger)
   }
 
-  templateCompiler(templateType: string, templateCode: string) {
-    let compiler = this._compiler[templateType]
-    if (!compiler) {
+  templateAdapter(templateType: string, templateCode: string) {
+    let adapter = this._adapters[templateType]
+    if (!adapter) {
       return
     }
-    return compiler(templateCode, this._bindObjectName)
+    return adapter(templateCode, this._bindObjectName)
   }
-  registerCompiler(templateType: string, compiler: TemplateCompilerFunction) {
-    this._compiler[templateType] = compiler
+  registerAdapter(templateType: string, adapter: TemplateAdapterFunction) {
+    this._adapters[templateType] = adapter
   }
 
   cleanChildren(scope: Scope) {

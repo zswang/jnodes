@@ -185,7 +185,7 @@ var jnodes_guid = 0;
   // > {"outerHTML":"<div></div>"}
   console.log(JSON.stringify(jnodes.binder.scope('none')));
   // > undefined
-  console.log(JSON.stringify(jnodes.binder.templateCompiler('none')));
+  console.log(JSON.stringify(jnodes.binder.templateAdapter('none')));
   // > undefined
   console.log(JSON.stringify(jnodes.binder.templateRender('none')));
   // > undefined
@@ -316,17 +316,17 @@ var jnodes_guid = 0;
   ```js
   jnodes.binder = new jnodes.Binder();
   var books = [{id: 1, title: 'book1'}, {id: 2, title: 'book2'}, {id: 3, title: 'book3'}];
-  jnodes.binder.registerCompiler('jhtmls', function (templateCode, bindObjectName) {
+  jnodes.binder.registerAdapter('jhtmls', function (templateCode, bindObjectName) {
     var node = jnodes.Parser.parse(templateCode);
-    var code = jnodes.Parser.build(node, bindObjectName, compiler_jhtmls);
+    var code = jnodes.Parser.build(node, bindObjectName, adapter_jhtmls);
     return jhtmls.render(code);
   });
-  var bookRender = jnodes.binder.templateCompiler('jhtmls', document.querySelector('#book').innerHTML);
+  var bookRender = jnodes.binder.templateAdapter('jhtmls', document.querySelector('#book').innerHTML);
   jnodes.binder.registerTemplate('book', function (scope) {
     return bookRender(scope.model);
   });
   var div = document.querySelector('div');
-  div.innerHTML = jnodes.binder.templateCompiler('jhtmls', div.querySelector('script').innerHTML)({
+  div.innerHTML = jnodes.binder.templateAdapter('jhtmls', div.querySelector('script').innerHTML)({
     books: books
   });
   var rootScope = jnodes.binder.$$scope;
@@ -368,13 +368,13 @@ var jnodes_guid = 0;
   ```js
   jnodes.binder = new jnodes.Binder({});
   var books = [{id: 1, title: 'book1', star: false}, {id: 2, title: 'book2', star: false}, {id: 3, title: 'book3', star: false}];
-  jnodes.binder.registerCompiler('jhtmls', function (templateCode, bindObjectName) {
+  jnodes.binder.registerAdapter('jhtmls', function (templateCode, bindObjectName) {
     var node = jnodes.Parser.parse(templateCode);
-    var code = jnodes.Parser.build(node, bindObjectName, compiler_jhtmls);
+    var code = jnodes.Parser.build(node, bindObjectName, adapter_jhtmls);
     return jhtmls.render(code);
   });
   var div = document.querySelector('div');
-  div.innerHTML = jnodes.binder.templateCompiler('jhtmls', div.querySelector('script').innerHTML)({
+  div.innerHTML = jnodes.binder.templateAdapter('jhtmls', div.querySelector('script').innerHTML)({
     books: books
   });
   var rootScope = jnodes.binder.$$scope;
@@ -452,12 +452,12 @@ var jnodes_guid = 0;
   var binder = new jnodes.Binder();
   var data = { checked: false };
   var div = document.querySelector('div');
-  jnodes.binder.registerCompiler('jhtmls', function (templateCode, bindObjectName) {
+  jnodes.binder.registerAdapter('jhtmls', function (templateCode, bindObjectName) {
     var node = jnodes.Parser.parse(templateCode);
-    var code = jnodes.Parser.build(node, bindObjectName, compiler_jhtmls);
+    var code = jnodes.Parser.build(node, bindObjectName, adapter_jhtmls);
     return jhtmls.render(code);
   });
-  div.innerHTML = jnodes.binder.templateCompiler('jhtmls', div.querySelector('script').innerHTML)(data);
+  div.innerHTML = jnodes.binder.templateAdapter('jhtmls', div.querySelector('script').innerHTML)(data);
   var rootScope = jnodes.binder.$$scope;
   rootScope.element = div;
   console.log(div.innerHTML.trim());
@@ -470,9 +470,11 @@ var jnodes_guid = 0;
 var Binder = (function () {
     function Binder(options) {
         var _this = this;
+        this._adapters = {};
         options = options || {};
         this._binds = {};
         this._templates = {};
+        this._adapters = {};
         this._bindObjectName = options.bindObjectName || 'jnodes.binder';
         this._bindAttributeName = options.bindAttributeName || 'bind';
         this._dependAttributeName = options.dependAttributeName || 'depend';
@@ -480,7 +482,6 @@ var Binder = (function () {
         this._eventAttributePrefix = options.eventAttributePrefix || "data-jnodes-event-";
         this._imports = options.imports;
         this._templates = {};
-        this._compiler = {};
         this._checkers = {};
         this._findElement = options.findElement || (function (scope) {
             return document.querySelector("[" + _this._scopeAttributeName + "=\"" + scope.id + "\"]");
@@ -615,15 +616,15 @@ var Binder = (function () {
         }
         return checker(event, trigger);
     };
-    Binder.prototype.templateCompiler = function (templateType, templateCode) {
-        var compiler = this._compiler[templateType];
-        if (!compiler) {
+    Binder.prototype.templateAdapter = function (templateType, templateCode) {
+        var adapter = this._adapters[templateType];
+        if (!adapter) {
             return;
         }
-        return compiler(templateCode, this._bindObjectName);
+        return adapter(templateCode, this._bindObjectName);
     };
-    Binder.prototype.registerCompiler = function (templateType, compiler) {
-        this._compiler[templateType] = compiler;
+    Binder.prototype.registerAdapter = function (templateType, adapter) {
+        this._adapters[templateType] = adapter;
     };
     Binder.prototype.cleanChildren = function (scope) {
         var _this = this;

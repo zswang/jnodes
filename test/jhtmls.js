@@ -3,12 +3,12 @@ global.jnodes = require('../jnodes.js');
 global.ejs = require('ejs');
 global.jhtmls = require('jhtmls');
 global.art = require('art-template/lib/template-web');
-global.compiler_jhtmls = require('../src/js/Compiler/jhtmls').compiler_jhtmls;
-global.compiler_ejs = require('../src/js/Compiler/ejs').compiler_ejs;
-global.compiler_art = require('../src/js/Compiler/art').compiler_art;
+global.adapter_jhtmls = require('../lib/Adapter/jhtmls').adapter_jhtmls;
+global.adapter_ejs = require('../lib/Adapter/ejs').adapter_ejs;
+global.adapter_art = require('../lib/Adapter/art').adapter_art;
       
 
-describe("src/ts/Compiler/jhtmls.ts", function () {
+describe("src/ts/Adapter/jhtmls.ts", function () {
   var assert = require('should');
   var util = require('util');
   var examplejs_printLines;
@@ -18,17 +18,17 @@ describe("src/ts/Compiler/jhtmls.ts", function () {
   var jsdom = require('jsdom');
   
 
-  it("compiler_jhtmls:base1", function () {
+  it("adapter_jhtmls:base1", function () {
     examplejs_printLines = [];
   var node = {
     tag: ':template'
   };
-  compiler_jhtmls(node);
+  adapter_jhtmls(node);
   examplejs_print(JSON.stringify(node));
   assert.equal(examplejs_printLines.join("\n"), "{\"tag\":\":template\"}"); examplejs_printLines = [];
   });
           
-  it("compiler_jhtmls:base2", function () {
+  it("adapter_jhtmls:base2", function () {
     examplejs_printLines = [];
   var node = {
     tag: ':template',
@@ -37,12 +37,12 @@ describe("src/ts/Compiler/jhtmls.ts", function () {
       value: 'book'
     }]
   };
-  compiler_jhtmls(node);
+  adapter_jhtmls(node);
   examplejs_print(JSON.stringify(node));
   assert.equal(examplejs_printLines.join("\n"), "{\"tag\":\":template\",\"attrs\":[{\"name\":\"class\",\"value\":\"book\"}]}"); examplejs_printLines = [];
   });
           
-  it("jsdom@compiler_jhtmls:base keyup.enter", function (done) {
+  it("jsdom@adapter_jhtmls:base keyup.enter", function (done) {
     jsdom.env("  <div>\n    <script type=\"text/jhtmls\">\n    <input type=\"text\" @keyup.enter=\"pos.x = parseInt(this.value)\" value=\"-1\">\n    <div><button :bind=\"pos\" @click=\"pos.x++\" @update.none=\"console.info('none')\">plus #{pos.x}</button></div>\n    </script>\n  </div>", {
         features: {
           FetchExternalResources : ["script", "link"],
@@ -62,7 +62,7 @@ describe("src/ts/Compiler/jhtmls.ts", function () {
     );
   });
           
-  it("compiler_jhtmls:base keyup.enter", function () {
+  it("adapter_jhtmls:base keyup.enter", function () {
     examplejs_printLines = [];
   var data = {
     tag: 'x',
@@ -73,13 +73,13 @@ describe("src/ts/Compiler/jhtmls.ts", function () {
   var div = document.querySelector('div');
   var binder = jnodes.binder = new jnodes.Binder();
 
-  jnodes.binder.registerCompiler('jhtmls', function (templateCode, bindObjectName) {
+  jnodes.binder.registerAdapter('jhtmls', function (templateCode, bindObjectName) {
     var node = jnodes.Parser.parse(templateCode);
-    var code = jnodes.Parser.build(node, bindObjectName, compiler_jhtmls);
+    var code = jnodes.Parser.build(node, bindObjectName, adapter_jhtmls);
     return jhtmls.render(code);
   });
 
-  div.innerHTML = jnodes.binder.templateCompiler('jhtmls', div.querySelector('script').innerHTML)(data);
+  div.innerHTML = jnodes.binder.templateAdapter('jhtmls', div.querySelector('script').innerHTML)(data);
   var rootScope = jnodes.binder.$$scope;
   rootScope.element = div;
 
@@ -120,7 +120,7 @@ describe("src/ts/Compiler/jhtmls.ts", function () {
   assert.equal(examplejs_printLines.join("\n"), "plus -1"); examplejs_printLines = [];
   });
           
-  it("jsdom@compiler_jhtmls:base depend", function (done) {
+  it("jsdom@adapter_jhtmls:base depend", function (done) {
     jsdom.env("  <div>\n    <script type=\"text/jhtmls\">\n    <div :bind=\"books\">\n      <h4>#{books.filter(function (book) { return book.star; }).length}</h4>\n      <ul>\n      books.forEach(function (book) {\n        <li :depend=\"book\">#{book.title}</li>\n      })\n      </ul>\n    </script>\n  </div>", {
         features: {
           FetchExternalResources : ["script", "link"],
@@ -140,7 +140,7 @@ describe("src/ts/Compiler/jhtmls.ts", function () {
     );
   });
           
-  it("compiler_jhtmls:base depend", function () {
+  it("adapter_jhtmls:base depend", function () {
     examplejs_printLines = [];
   var data = {
     books: [{
@@ -154,13 +154,13 @@ describe("src/ts/Compiler/jhtmls.ts", function () {
   var div = document.querySelector('div');
   var binder = jnodes.binder = new jnodes.Binder();
 
-  jnodes.binder.registerCompiler('jhtmls', function (templateCode, bindObjectName) {
+  jnodes.binder.registerAdapter('jhtmls', function (templateCode, bindObjectName) {
     var node = jnodes.Parser.parse(templateCode);
-    var code = jnodes.Parser.build(node, bindObjectName, compiler_jhtmls);
+    var code = jnodes.Parser.build(node, bindObjectName, adapter_jhtmls);
     return jhtmls.render(code);
   });
 
-  div.innerHTML = jnodes.binder.templateCompiler('jhtmls', div.querySelector('script').innerHTML)(data);
+  div.innerHTML = jnodes.binder.templateAdapter('jhtmls', div.querySelector('script').innerHTML)(data);
   var rootScope = jnodes.binder.$$scope;
   rootScope.element = div;
   data.books[0].star = true;

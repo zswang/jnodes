@@ -3,12 +3,12 @@ global.jnodes = require('../jnodes.js');
 global.ejs = require('ejs');
 global.jhtmls = require('jhtmls');
 global.art = require('art-template/lib/template-web');
-global.compiler_jhtmls = require('../src/js/Compiler/jhtmls').compiler_jhtmls;
-global.compiler_ejs = require('../src/js/Compiler/ejs').compiler_ejs;
-global.compiler_art = require('../src/js/Compiler/art').compiler_art;
+global.adapter_jhtmls = require('../lib/Adapter/jhtmls').adapter_jhtmls;
+global.adapter_ejs = require('../lib/Adapter/ejs').adapter_ejs;
+global.adapter_art = require('../lib/Adapter/art').adapter_art;
       
 
-describe("src/ts/Compiler/art.ts", function () {
+describe("src/ts/Adapter/art.ts", function () {
   var assert = require('should');
   var util = require('util');
   var examplejs_printLines;
@@ -18,7 +18,7 @@ describe("src/ts/Compiler/art.ts", function () {
   var jsdom = require('jsdom');
   
 
-  it("jsdom@compiler_art:base1", function (done) {
+  it("jsdom@adapter_art:base1", function (done) {
     jsdom.env("  <div>\n    <script type=\"text/art\">\n    <input type=\"text\" @keyup.enter=\"books.push({id: 4, title: this.value})\" value=\"new\">\n    <h1 :class=\"{book: Math.random() > 0.5}\">Books</h1>\n    <ul :bind=\"books\" @create=\"books.loaded = 'done'\">\n    <% books.forEach(function (book) { %>\n      <li :bind=\"book\">\n        <:template name=\"book\"/>\n      </li>\n    <% }); %>\n    </ul>\n    </script>\n  </div>\n  <script type=\"text/art\" id=\"book\">\n  <a :href=\"id\"><%= title %></a>\n  </script>", {
         features: {
           FetchExternalResources : ["script", "link"],
@@ -38,7 +38,7 @@ describe("src/ts/Compiler/art.ts", function () {
     );
   });
           
-  it("compiler_art:base1", function () {
+  it("adapter_art:base1", function () {
     examplejs_printLines = [];
   var escape = function escape(content) {
 
@@ -73,24 +73,24 @@ describe("src/ts/Compiler/art.ts", function () {
 
   var binder = jnodes.binder = new jnodes.Binder();
   var books = [{id: 1, title: 'book1'}, {id: 2, title: 'book2'}, {id: 3, title: 'book3'}];
-  binder.registerCompiler('art', function (templateCode, bindObjectName) {
+  binder.registerAdapter('art', function (templateCode, bindObjectName) {
     var node = jnodes.Parser.parse(templateCode);
     var code = jnodes.Parser.build(node, {
       bindObjectName: bindObjectName,
       out: (art.compile.Compiler && art.compile.Compiler.CONSTS.OUT) || '$out',
-    }, compiler_art);
+    }, adapter_art);
     var imports = binder._import || {};
     imports.jnodes = jnodes;
     imports.Math = Math;
     imports.$escape = escape;
     return art.compile(code, { imports: imports });
   });
-  var bookRender = binder.templateCompiler('art', document.querySelector('#book').innerHTML);
+  var bookRender = binder.templateAdapter('art', document.querySelector('#book').innerHTML);
   binder.registerTemplate('book', function (scope) {
     return bookRender(scope.model);
   });
   var div = document.querySelector('div');
-  div.innerHTML = binder.templateCompiler('art', div.querySelector('script').innerHTML)({
+  div.innerHTML = binder.templateAdapter('art', div.querySelector('script').innerHTML)({
     books: books
   });
   var rootScope = binder.$$scope;
@@ -158,7 +158,7 @@ describe("src/ts/Compiler/art.ts", function () {
   assert.equal(examplejs_printLines.join("\n"), "<a href=\"4\">new</a>"); examplejs_printLines = [];
   });
           
-  it("jsdom@compiler_art:base2", function (done) {
+  it("jsdom@adapter_art:base2", function (done) {
     jsdom.env("  <div>\n    <script type=\"text/art\">\n    <ul :bind=\"books\" :data-length=\"books.length\" @create=\"books.loaded = 'done'\" class=\"books\">\n    <% books.forEach(function (book) { %>\n      <li :bind=\"book\" @click=\"book.star = !book.star\" class=\"\" :class=\"{star: book.star}\">\n        <a :href=\"'/' + book.id\" :bind=\"book.title\"><%= book.title %></a>\n        <span :bind=\"book.id\" :data-star=\"book.star\"><%= book.id %></span>\n      </li>\n    <% }); %>\n    </ul>\n    </script>\n  </div>", {
         features: {
           FetchExternalResources : ["script", "link"],
@@ -178,7 +178,7 @@ describe("src/ts/Compiler/art.ts", function () {
     );
   });
           
-  it("compiler_art:base2", function () {
+  it("adapter_art:base2", function () {
     examplejs_printLines = [];
   jnodes.binder = new jnodes.Binder();
 
@@ -214,12 +214,12 @@ describe("src/ts/Compiler/art.ts", function () {
   };
 
   var books = [{id: 1, title: 'book1', star: false}, {id: 2, title: 'book2', star: false}, {id: 3, title: 'book3', star: false}];
-  jnodes.binder.registerCompiler('art', function (templateCode, bindObjectName) {
+  jnodes.binder.registerAdapter('art', function (templateCode, bindObjectName) {
     var node = jnodes.Parser.parse(templateCode);
     var code = jnodes.Parser.build(node, {
       bindObjectName: bindObjectName,
       out: (art.compile.Compiler && art.compile.Compiler.CONSTS.OUT) || '$out',
-    }, compiler_art);
+    }, adapter_art);
     var imports = jnodes.binder._import || {};
     imports.jnodes = jnodes;
     imports.Math = Math;
@@ -228,7 +228,7 @@ describe("src/ts/Compiler/art.ts", function () {
   });
 
   var div = document.querySelector('div');
-  div.innerHTML = jnodes.binder.templateCompiler('art', div.querySelector('script').innerHTML)({
+  div.innerHTML = jnodes.binder.templateAdapter('art', div.querySelector('script').innerHTML)({
     books: books
   });
   var rootScope = jnodes.binder.$$scope;
@@ -273,17 +273,17 @@ describe("src/ts/Compiler/art.ts", function () {
   assert.equal(examplejs_printLines.join("\n"), "star"); examplejs_printLines = [];
   });
           
-  it("compiler_art:base3", function () {
+  it("adapter_art:base3", function () {
     examplejs_printLines = [];
   var node = {
     tag: ':template'
   };
-  compiler_art(node, { bindObjectName: 'jnodes', out: '$out' });
+  adapter_art(node, { bindObjectName: 'jnodes', out: '$out' });
   examplejs_print(JSON.stringify(node));
   assert.equal(examplejs_printLines.join("\n"), "{\"tag\":\":template\"}"); examplejs_printLines = [];
   });
           
-  it("compiler_art:base4", function () {
+  it("adapter_art:base4", function () {
     examplejs_printLines = [];
   var node = {
     tag: ':template',
@@ -292,12 +292,12 @@ describe("src/ts/Compiler/art.ts", function () {
       value: 'book'
     }]
   };
-  compiler_art(node, { bindObjectName: 'jnodes', out: '$out' });
+  adapter_art(node, { bindObjectName: 'jnodes', out: '$out' });
   examplejs_print(JSON.stringify(node));
   assert.equal(examplejs_printLines.join("\n"), "{\"tag\":\":template\",\"attrs\":[{\"name\":\"class\",\"value\":\"book\"}]}"); examplejs_printLines = [];
   });
           
-  it("compiler_art:base5", function () {
+  it("adapter_art:base5", function () {
     examplejs_printLines = [];
   var node = {
     tag: 'span',
@@ -306,12 +306,12 @@ describe("src/ts/Compiler/art.ts", function () {
       value: 'book',
     }]
   };
-  compiler_art(node, { bindObjectName: 'jnodes', out: '$out' });
+  adapter_art(node, { bindObjectName: 'jnodes', out: '$out' });
   examplejs_print(JSON.stringify(node));
   assert.equal(examplejs_printLines.join("\n"), "{\"tag\":\"span\",\"attrs\":[{\"name\":\"class\",\"value\":\"book\"}]}"); examplejs_printLines = [];
   });
           
-  it("jsdom@compiler_art:base depend", function (done) {
+  it("jsdom@adapter_art:base depend", function (done) {
     jsdom.env("  <div>\n    <script type=\"text/art\">\n    <div :bind=\"books\">\n      <h4><%= books.filter(function (book) { return book.star; }).length %></h4>\n      <ul>\n      <% books.forEach(function (book) { %>\n        <li :depend=\"book\">#{book.title}</li>\n      <% }); %>\n      </ul>\n    </script>\n  </div>", {
         features: {
           FetchExternalResources : ["script", "link"],
@@ -331,7 +331,7 @@ describe("src/ts/Compiler/art.ts", function () {
     );
   });
           
-  it("compiler_art:base depend", function () {
+  it("adapter_art:base depend", function () {
     examplejs_printLines = [];
   var data = {
     books: [{
@@ -345,12 +345,12 @@ describe("src/ts/Compiler/art.ts", function () {
   var div = document.querySelector('div');
   var binder = jnodes.binder = new jnodes.Binder();
 
-  jnodes.binder.registerCompiler('art', function (templateCode, bindObjectName) {
+  jnodes.binder.registerAdapter('art', function (templateCode, bindObjectName) {
     var node = jnodes.Parser.parse(templateCode);
     var code = jnodes.Parser.build(node, {
       bindObjectName: bindObjectName,
       out: (art.compile.Compiler && art.compile.Compiler.CONSTS.OUT) || '$out',
-    }, compiler_art);
+    }, adapter_art);
     var imports = jnodes.binder._import || {};
     imports.jnodes = jnodes;
     imports.Math = Math;
@@ -358,7 +358,7 @@ describe("src/ts/Compiler/art.ts", function () {
     return art.compile(code, { imports: imports });
   });
 
-  div.innerHTML = jnodes.binder.templateCompiler('art', div.querySelector('script').innerHTML)(data);
+  div.innerHTML = jnodes.binder.templateAdapter('art', div.querySelector('script').innerHTML)(data);
   var rootScope = jnodes.binder.$$scope;
   rootScope.element = div;
   data.books[0].star = true;

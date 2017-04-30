@@ -1,21 +1,21 @@
 import { H5Node } from "../Types"
 
-/*<function name="compiler_jhtmls">*/
+/*<function name="adapter_jhtmls">*/
 /**
  * 编译 jhtmls
  *
  * @param node 节点
  * @param bindObjectName 全局对象名
- * @example compiler_jhtmls:base1
+ * @example adapter_jhtmls:base1
   ```js
   var node = {
     tag: ':template'
   };
-  compiler_jhtmls(node);
+  adapter_jhtmls(node);
   console.log(JSON.stringify(node));
   // > {"tag":":template"}
   ```
- * @example compiler_jhtmls:base2
+ * @example adapter_jhtmls:base2
   ```js
   var node = {
     tag: ':template',
@@ -24,11 +24,11 @@ import { H5Node } from "../Types"
       value: 'book'
     }]
   };
-  compiler_jhtmls(node);
+  adapter_jhtmls(node);
   console.log(JSON.stringify(node));
   // > {"tag":":template","attrs":[{"name":"class","value":"book"}]}
   ```
- * @example compiler_jhtmls:base keyup.enter
+ * @example adapter_jhtmls:base keyup.enter
   ```html
   <div>
     <script type="text/jhtmls">
@@ -47,13 +47,13 @@ import { H5Node } from "../Types"
   var div = document.querySelector('div');
   var binder = jnodes.binder = new jnodes.Binder();
 
-  jnodes.binder.registerCompiler('jhtmls', function (templateCode, bindObjectName) {
+  jnodes.binder.registerAdapter('jhtmls', function (templateCode, bindObjectName) {
     var node = jnodes.Parser.parse(templateCode);
-    var code = jnodes.Parser.build(node, bindObjectName, compiler_jhtmls);
+    var code = jnodes.Parser.build(node, bindObjectName, adapter_jhtmls);
     return jhtmls.render(code);
   });
 
-  div.innerHTML = jnodes.binder.templateCompiler('jhtmls', div.querySelector('script').innerHTML)(data);
+  div.innerHTML = jnodes.binder.templateAdapter('jhtmls', div.querySelector('script').innerHTML)(data);
   var rootScope = jnodes.binder.$$scope;
   rootScope.element = div;
 
@@ -93,7 +93,7 @@ import { H5Node } from "../Types"
   console.log(document.querySelector('button').innerHTML.trim());
   // > plus -1
   ```
- * @example compiler_jhtmls:base depend
+ * @example adapter_jhtmls:base depend
   ```html
   <div>
     <script type="text/jhtmls">
@@ -120,13 +120,13 @@ import { H5Node } from "../Types"
   var div = document.querySelector('div');
   var binder = jnodes.binder = new jnodes.Binder();
 
-  jnodes.binder.registerCompiler('jhtmls', function (templateCode, bindObjectName) {
+  jnodes.binder.registerAdapter('jhtmls', function (templateCode, bindObjectName) {
     var node = jnodes.Parser.parse(templateCode);
-    var code = jnodes.Parser.build(node, bindObjectName, compiler_jhtmls);
+    var code = jnodes.Parser.build(node, bindObjectName, adapter_jhtmls);
     return jhtmls.render(code);
   });
 
-  div.innerHTML = jnodes.binder.templateCompiler('jhtmls', div.querySelector('script').innerHTML)(data);
+  div.innerHTML = jnodes.binder.templateAdapter('jhtmls', div.querySelector('script').innerHTML)(data);
   var rootScope = jnodes.binder.$$scope;
   rootScope.element = div;
   data.books[0].star = true;
@@ -138,7 +138,7 @@ import { H5Node } from "../Types"
   // > 2
   ```
    */
-function compiler_jhtmls(node: H5Node, bindObjectName: string) {
+function adapter_jhtmls(node: H5Node, bindObjectName: string) {
   let indent = node.indent || ''
   let inserFlag = `/***/ `
   if (node.type === 'root') {
@@ -206,5 +206,5 @@ function compiler_jhtmls(node: H5Node, bindObjectName: string) {
 } /*</function>*/
 
 export {
-  compiler_jhtmls
+  adapter_jhtmls
 }

@@ -1,17 +1,17 @@
 import { H5Node } from "../Types"
 
-interface ArtCompilerOptions {
+interface ArtAdapterOptions {
     bindObjectName: string
     out: string
 }
 
-/*<function name="compiler_art">*/
+/*<function name="adapter_art">*/
 /**
  * art 处理
  *
  * @param node
  * @param bindObjectName
- * @example compiler_art:base1
+ * @example adapter_art:base1
   ```html
   <div>
     <script type="text/art">
@@ -64,24 +64,24 @@ interface ArtCompilerOptions {
 
   var binder = jnodes.binder = new jnodes.Binder();
   var books = [{id: 1, title: 'book1'}, {id: 2, title: 'book2'}, {id: 3, title: 'book3'}];
-  binder.registerCompiler('art', function (templateCode, bindObjectName) {
+  binder.registerAdapter('art', function (templateCode, bindObjectName) {
     var node = jnodes.Parser.parse(templateCode);
     var code = jnodes.Parser.build(node, {
       bindObjectName: bindObjectName,
       out: (art.compile.Compiler && art.compile.Compiler.CONSTS.OUT) || '$out',
-    }, compiler_art);
+    }, adapter_art);
     var imports = binder._import || {};
     imports.jnodes = jnodes;
     imports.Math = Math;
     imports.$escape = escape;
     return art.compile(code, { imports: imports });
   });
-  var bookRender = binder.templateCompiler('art', document.querySelector('#book').innerHTML);
+  var bookRender = binder.templateAdapter('art', document.querySelector('#book').innerHTML);
   binder.registerTemplate('book', function (scope) {
     return bookRender(scope.model);
   });
   var div = document.querySelector('div');
-  div.innerHTML = binder.templateCompiler('art', div.querySelector('script').innerHTML)({
+  div.innerHTML = binder.templateAdapter('art', div.querySelector('script').innerHTML)({
     books: books
   });
   var rootScope = binder.$$scope;
@@ -148,7 +148,7 @@ interface ArtCompilerOptions {
   console.log(document.querySelector('li:last-child').innerHTML.trim());
   // > <a href="4">new</a>
   ```
- * @example compiler_art:base2
+ * @example adapter_art:base2
   ```html
   <div>
     <script type="text/art">
@@ -198,12 +198,12 @@ interface ArtCompilerOptions {
   };
 
   var books = [{id: 1, title: 'book1', star: false}, {id: 2, title: 'book2', star: false}, {id: 3, title: 'book3', star: false}];
-  jnodes.binder.registerCompiler('art', function (templateCode, bindObjectName) {
+  jnodes.binder.registerAdapter('art', function (templateCode, bindObjectName) {
     var node = jnodes.Parser.parse(templateCode);
     var code = jnodes.Parser.build(node, {
       bindObjectName: bindObjectName,
       out: (art.compile.Compiler && art.compile.Compiler.CONSTS.OUT) || '$out',
-    }, compiler_art);
+    }, adapter_art);
     var imports = jnodes.binder._import || {};
     imports.jnodes = jnodes;
     imports.Math = Math;
@@ -212,7 +212,7 @@ interface ArtCompilerOptions {
   });
 
   var div = document.querySelector('div');
-  div.innerHTML = jnodes.binder.templateCompiler('art', div.querySelector('script').innerHTML)({
+  div.innerHTML = jnodes.binder.templateAdapter('art', div.querySelector('script').innerHTML)({
     books: books
   });
   var rootScope = jnodes.binder.$$scope;
@@ -256,16 +256,16 @@ interface ArtCompilerOptions {
   console.log(li.className);
   // > star
   ```
- * @example compiler_art:base3
+ * @example adapter_art:base3
   ```js
   var node = {
     tag: ':template'
   };
-  compiler_art(node, { bindObjectName: 'jnodes', out: '$out' });
+  adapter_art(node, { bindObjectName: 'jnodes', out: '$out' });
   console.log(JSON.stringify(node));
   // > {"tag":":template"}
   ```
- * @example compiler_art:base4
+ * @example adapter_art:base4
   ```js
   var node = {
     tag: ':template',
@@ -274,11 +274,11 @@ interface ArtCompilerOptions {
       value: 'book'
     }]
   };
-  compiler_art(node, { bindObjectName: 'jnodes', out: '$out' });
+  adapter_art(node, { bindObjectName: 'jnodes', out: '$out' });
   console.log(JSON.stringify(node));
   // > {"tag":":template","attrs":[{"name":"class","value":"book"}]}
   ```
- * @example compiler_art:base5
+ * @example adapter_art:base5
   ```js
   var node = {
     tag: 'span',
@@ -287,11 +287,11 @@ interface ArtCompilerOptions {
       value: 'book',
     }]
   };
-  compiler_art(node, { bindObjectName: 'jnodes', out: '$out' });
+  adapter_art(node, { bindObjectName: 'jnodes', out: '$out' });
   console.log(JSON.stringify(node));
   // > {"tag":"span","attrs":[{"name":"class","value":"book"}]}
   ```
- * @example compiler_art:base depend
+ * @example adapter_art:base depend
   ```html
   <div>
     <script type="text/art">
@@ -318,12 +318,12 @@ interface ArtCompilerOptions {
   var div = document.querySelector('div');
   var binder = jnodes.binder = new jnodes.Binder();
 
-  jnodes.binder.registerCompiler('art', function (templateCode, bindObjectName) {
+  jnodes.binder.registerAdapter('art', function (templateCode, bindObjectName) {
     var node = jnodes.Parser.parse(templateCode);
     var code = jnodes.Parser.build(node, {
       bindObjectName: bindObjectName,
       out: (art.compile.Compiler && art.compile.Compiler.CONSTS.OUT) || '$out',
-    }, compiler_art);
+    }, adapter_art);
     var imports = jnodes.binder._import || {};
     imports.jnodes = jnodes;
     imports.Math = Math;
@@ -331,7 +331,7 @@ interface ArtCompilerOptions {
     return art.compile(code, { imports: imports });
   });
 
-  div.innerHTML = jnodes.binder.templateCompiler('art', div.querySelector('script').innerHTML)(data);
+  div.innerHTML = jnodes.binder.templateAdapter('art', div.querySelector('script').innerHTML)(data);
   var rootScope = jnodes.binder.$$scope;
   rootScope.element = div;
   data.books[0].star = true;
@@ -343,7 +343,7 @@ interface ArtCompilerOptions {
   // > 2
   ```
    */
-function compiler_art(node: H5Node, options: ArtCompilerOptions) {
+function adapter_art(node: H5Node, options: ArtAdapterOptions) {
   let indent = node.indent || ''
   let inserFlag = `/***/ `
   let bindObjectName = options.bindObjectName
@@ -413,5 +413,5 @@ function compiler_art(node: H5Node, options: ArtCompilerOptions) {
 } /*</function>*/
 
 export {
-  compiler_art
+  adapter_art
 }
