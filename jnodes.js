@@ -1,5 +1,15 @@
 (function (exportName) {
-/*<function name="observer">*/
+  /**
+   * @file jnodes
+   * @url git+https://github.com/zswang/jnodes.git
+   * Front end template data binding.
+   * @author
+   *   zswang (http://weibo.com/zswang)
+   * @version 0.4.5
+   * @date 2017-04-30
+  * @license MIT
+  */
+  /*<function name="observer">*/
 /**
  * 监听数据改版
  *
@@ -903,7 +913,7 @@ var Binder = (function () {
     };
     return Binder;
 }()); /*</function>*/
-/*<function name="parser_void_elements">*/
+  /*<function name="parser_void_elements">*/
 var parser_void_elements = [
     'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'keygen',
     'link', 'menuitem', 'meta', 'param', 'source', 'track', 'wbr'

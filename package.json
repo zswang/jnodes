@@ -1,6 +1,6 @@
 {
   "name": "jnodes",
-  "version": "0.4.3",
+  "version": "0.4.5",
   "main": "jnodes.js",
   "scripts": {
     "_update_version": "node version.js",
@@ -59,8 +59,6 @@
     "jnodes.js",
     "jnodes.min.js",
     "README.md",
-    "src/js/Compiler/jhtmls.js",
-    "src/js/Compiler/art.js",
-    "src/js/Compiler/ejs.js"
+    "lib"
   ]
 }
