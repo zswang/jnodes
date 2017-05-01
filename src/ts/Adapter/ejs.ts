@@ -355,7 +355,7 @@ function adapter_ejs(node: H5Node, bindObjectName: string) {
   node.beforebegin = node.beforebegin || ``
   varintAttrs += `${indent}${inserFlag}];%>`
   node.beforebegin += varintAttrs
-  node.overwriteAttrs = `<%- ${bindObjectName}._attrsRender(_scope_, _attrs_) %>`
+  node.overwriteAttrs = `<%- ${bindObjectName}._attrsRender(_scope_, _attrs_, { tag: ${JSON.stringify(node.tag)}, id: ${JSON.stringify(node.id)} }) %>`
 } /*</function>*/
 
 export {

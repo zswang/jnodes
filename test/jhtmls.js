@@ -43,7 +43,7 @@ describe("src/ts/Adapter/jhtmls.ts", function () {
   });
           
   it("jsdom@adapter_jhtmls:base keyup.enter", function (done) {
-    jsdom.env("  <div>\n    <script type=\"text/jhtmls\">\n    <input type=\"text\" @keyup.enter=\"pos.x = parseInt(this.value)\" value=\"-1\">\n    <div><button :bind=\"pos\" @click=\"pos.x++\" @update.none=\"console.info('none')\">plus #{pos.x}</button></div>\n    </script>\n  </div>", {
+    jsdom.env("  <div>\n    <script type=\"text/jhtmls\">\n    <input type=\"text\" @keyup.enter=\"pos.x = parseInt(this.value)\" value=\"-1\">\n    <div>\n      <button :bind=\"pos\" @click=\"pos.x++\" @update.none=\"console.info('none')\">plus #{pos.x}</button>\n    </div>\n    <h1 :bind=\"pos\"><button @click=\"pos.x++\">plus #{pos.x}</button></h1>\n    </script>\n  </div>", {
         features: {
           FetchExternalResources : ["script", "link"],
           ProcessExternalResources: ["script"]

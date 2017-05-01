@@ -12,6 +12,10 @@ export interface H5Attr {
  */
 export interface H5Node {
   /**
+   * 节点唯一标识
+   */
+  id: string,
+  /**
    * 节点类型
    *  "left": 起始, "<tag ...>"
    *  “right”: 结尾, "</tag>"

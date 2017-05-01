@@ -48,7 +48,7 @@
 /***/     'name': ':cmd',
 /***/     'value': _sort,
 /***/   }];
-        <button !#{jnodes.binder.attrsRender(_scope_, _attrs_)}>sort</button>
+        <button !#{jnodes.binder._attrsRender(_scope_, _attrs_)}>sort</button>
       </li>
       forEach(function (book) {
 /***/   jnodes.binder.bind(book, _scope_, function (_output_, _scope_, holdInner) {
@@ -57,7 +57,7 @@
 /***/       { name: "class", value: "book", quoted: '"'},
 /***/       { name: ":class", value: { star: book.star }, quoted: '"' },
 /***/     ];
-        <li !#{jnodes.binder.attrsRender(_scope_, _attrs_)}>
+        <li !#{jnodes.binder._attrsRender(_scope_, _attrs_)}>
 /***/     _scope_.innerRender = function(_output_) {
           #{book.title}
           if (book.star) {
@@ -142,7 +142,7 @@
 /***/   },
 /***/   ];
       %>
-      <input <%- jnodes.binder.attrsRender(_scope_, attrs) %>>
+      <input <%- jnodes.binder._attrsRender(_scope_, attrs) %>>
       <li>
         <button cmd="remove">remove</button>
         <%
@@ -159,7 +159,7 @@
 /***/     'value': _sort,
 /***/   }];
         %>
-        <button <%- jnodes.binder.attrsRender(_scope_, attrs) %>>sort</button>
+        <button <%- jnodes.binder._attrsRender(_scope_, attrs) %>>sort</button>
       </li>
       <% forEach(function (book) { %>
       <%
@@ -171,7 +171,7 @@
 /***/        { name: ":class", value: { star: book.star }, quoted: '"' },
 /***/      ];
       %>
-        <li <%- jnodes.binder.attrsRender(_scope_, attrs) %>>
+        <li <%- jnodes.binder._attrsRender(_scope_, attrs) %>>
       <%
 /***/      (_scope_.innerRender = function(__output) {
 /***/        var __append = __output.push.bind(__output);
@@ -193,7 +193,7 @@
 /***/     },
 /***/   }];
       %>
-          <button <%- jnodes.binder.attrsRender(_scope_, attrs) %>>show()</button>
+          <button <%- jnodes.binder._attrsRender(_scope_, attrs) %>>show()</button>
       <%
 /***/      })(__output);
       %>

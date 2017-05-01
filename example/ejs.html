@@ -50,7 +50,7 @@
 <script src="../node_modules/h5tap/h5tap.js"></script>
 <script src="../jnodes.js"></script>
 <script src="books.js"></script>
-<script src="../src/js/Compiler/ejs.js"></script>
+<script src="../lib/Adapter/ejs.js"></script>
 <script>
 (function () {
   var rootData = {
@@ -71,10 +71,9 @@
   var element = document.querySelector('#books_ejs');
   var script = document.querySelector('#books_ejs script');
 
-  // var compiler = new jnodes.Compiler();
   var root = jnodes.Parser.parse(script.innerHTML);
   var textarea = document.querySelector('textarea')
-  var template = jnodes.Parser.build(root, binder._bindObjectName, compiler_ejs);
+  var template = jnodes.Parser.build(root, binder._bindObjectName, adapter_ejs);
   textarea.value = template;
   element.innerHTML = ejs.render(template, rootData);
 

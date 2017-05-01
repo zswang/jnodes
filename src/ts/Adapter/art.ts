@@ -409,7 +409,7 @@ function adapter_art(node: H5Node, options: ArtAdapterOptions) {
 
   varintAttrs += `${indent}${inserFlag}];%>`
   node.beforebegin += varintAttrs
-  node.overwriteAttrs = `<%- ${bindObjectName}._attrsRender(_scope_, _attrs_) %>`
+  node.overwriteAttrs = `<%- ${bindObjectName}._attrsRender(_scope_, _attrs_, { tag: ${JSON.stringify(node.tag)}, id: ${JSON.stringify(node.id)} }) %>`
 } /*</function>*/
 
 export {

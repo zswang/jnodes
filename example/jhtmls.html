@@ -54,7 +54,7 @@
 <script src="../node_modules/h5tap/h5tap.js"></script>
 <script src="../jnodes.js"></script>
 <script src="books.js"></script>
-<script src="../src/js/Compiler/jhtmls.js"></script>
+<script src="../lib/Adapter/jhtmls.js"></script>
 <script>
 (function () {
   var rootData = {
@@ -69,10 +69,9 @@
   var element = document.querySelector('#books_jhtmls');
   var script = document.querySelector('#books_jhtmls script');
 
-  // var compiler = new jnodes.Compiler();
   var root = jnodes.Parser.parse(script.innerHTML);
   var textarea = document.querySelector('textarea')
-  var template = jnodes.Parser.build(root, binder._bindObjectName, compiler_jhtmls);
+  var template = jnodes.Parser.build(root, binder._bindObjectName, adapter_jhtmls);
   textarea.value = template;
   element.innerHTML = jhtmls.render(template, rootData);
 

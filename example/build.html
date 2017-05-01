@@ -134,7 +134,7 @@
 
     varintAttrs += `${indent}/***/ ];\n`;
     node.beforebegin += varintAttrs;
-    node.overwriteAttrs = `!#{${bindObjectName}.attrsRender(_scope_, _attrs_)}`;
+    node.overwriteAttrs = `!#{${bindObjectName}._attrsRender(_scope_, _attrs_)}`;
   });
 
   // textarea.value = template;

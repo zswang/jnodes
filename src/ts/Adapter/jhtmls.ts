@@ -33,7 +33,10 @@ import { H5Node } from "../Types"
   <div>
     <script type="text/jhtmls">
     <input type="text" @keyup.enter="pos.x = parseInt(this.value)" value="-1">
-    <div><button :bind="pos" @click="pos.x++" @update.none="console.info('none')">plus #{pos.x}</button></div>
+    <div>
+      <button :bind="pos" @click="pos.x++" @update.none="console.info('none')">plus #{pos.x}</button>
+    </div>
+    <h1 :bind="pos"><button @click="pos.x++">plus #{pos.x}</button></h1>
     </script>
   </div>
   ```
@@ -202,7 +205,7 @@ function adapter_jhtmls(node: H5Node, bindObjectName: string) {
   node.beforebegin = node.beforebegin || ''
   varintAttrs += `${indent}${inserFlag}];\n`
   node.beforebegin += varintAttrs
-  node.overwriteAttrs = `!#{${bindObjectName}._attrsRender(_scope_, _attrs_)}`
+  node.overwriteAttrs = `!#{${bindObjectName}._attrsRender(_scope_, _attrs_, { tag: ${JSON.stringify(node.tag)}, id: ${JSON.stringify(node.id)} })}`
 } /*</function>*/
 
 export {

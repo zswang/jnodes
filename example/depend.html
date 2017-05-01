@@ -45,8 +45,8 @@
 <script src="../node_modules/ejs/ejs.js"></script>
 <script src="../node_modules/h5tap/h5tap.js"></script>
 <script src="../jnodes.js"></script>
-<script src="../src/js/Compiler/jhtmls.js"></script>
-<script src="../src/js/Compiler/ejs.js"></script>
+<script src="../lib/Adapter/jhtmls.js"></script>
+<script src="../lib/Adapter/ejs.js"></script>
 <script src="books.js"></script>
 <script>
 (function () {
@@ -73,10 +73,10 @@
     var root = jnodes.Parser.parse(script.innerHTML);
     var type = script.getAttribute('type');
     if (type === 'text/jhtmls') {
-      var template = jnodes.Parser.build(root, binder._bindObjectName, compiler_jhtmls);
+      var template = jnodes.Parser.build(root, binder._bindObjectName, adapter_jhtmls);
       element.innerHTML = jhtmls.render(template, rootData);
     } else {
-      var template = jnodes.Parser.build(root, binder._bindObjectName, compiler_ejs);
+      var template = jnodes.Parser.build(root, binder._bindObjectName, adapter_ejs);
       element.innerHTML = ejs.render(template, rootData);
     }
     jnodes.binder.$$scope.element = element;

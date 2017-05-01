@@ -21,35 +21,35 @@ describe("src/ts/Parser.ts", function () {
   it("parser_parse:base", function () {
     examplejs_printLines = [];
   var node = jnodes.Parser.parse(`<!--test--><div class="box"></div>`);
-  examplejs_print(JSON.stringify(node));
+  examplejs_print(JSON.stringify(node).replace(/"id":"\w+",/g, ''));
   assert.equal(examplejs_printLines.join("\n"), "{\"type\":\"root\",\"pos\":0,\"endpos\":34,\"children\":[{\"type\":\"comment\",\"pos\":0,\"endpos\":11,\"value\":\"<!--test-->\",\"indent\":\"\"},{\"type\":\"block\",\"pos\":11,\"endpos\":34,\"tag\":\"div\",\"attrs\":[{\"name\":\"class\",\"value\":\"box\",\"quoted\":\"\\\"\"}],\"indent\":\"\",\"selfClosing\":false,\"children\":[]}]}"); examplejs_printLines = [];
   });
           
   it("parser_parse:text", function () {
     examplejs_printLines = [];
   var node = jnodes.Parser.parse(`hello`);
-  examplejs_print(JSON.stringify(node));
+  examplejs_print(JSON.stringify(node).replace(/"id":"\w+",/g, ''));
   assert.equal(examplejs_printLines.join("\n"), "{\"type\":\"root\",\"pos\":0,\"endpos\":5,\"children\":[{\"type\":\"text\",\"pos\":0,\"endpos\":5,\"value\":\"hello\"}]}"); examplejs_printLines = [];
   });
           
   it("parser_parse:comment not closed.", function () {
     examplejs_printLines = [];
   var node = jnodes.Parser.parse(`<!--hello`);
-  examplejs_print(JSON.stringify(node));
+  examplejs_print(JSON.stringify(node).replace(/"id":"\w+",/g, ''));
   assert.equal(examplejs_printLines.join("\n"), "{\"type\":\"root\",\"pos\":0,\"endpos\":9,\"children\":[{\"type\":\"comment\",\"pos\":0,\"endpos\":9,\"value\":\"<!--hello\",\"indent\":\"\"}]}"); examplejs_printLines = [];
   });
           
   it("parser_parse:attribute is emtpy", function () {
     examplejs_printLines = [];
   var node = jnodes.Parser.parse(`<div><input type=text readonly></div>`);
-  examplejs_print(JSON.stringify(node));
+  examplejs_print(JSON.stringify(node).replace(/"id":"\w+",/g, ''));
   assert.equal(examplejs_printLines.join("\n"), "{\"type\":\"root\",\"pos\":0,\"endpos\":37,\"children\":[{\"type\":\"block\",\"pos\":0,\"endpos\":37,\"tag\":\"div\",\"attrs\":[],\"indent\":\"\",\"selfClosing\":false,\"children\":[{\"type\":\"single\",\"pos\":5,\"endpos\":31,\"tag\":\"input\",\"attrs\":[{\"name\":\"type\",\"value\":\"text\",\"quoted\":\"\"},{\"name\":\"readonly\",\"value\":\"\",\"quoted\":\"\"}],\"indent\":\"\",\"selfClosing\":true}]}]}"); examplejs_printLines = [];
   });
           
   it("parser_parse:tag not closed", function () {
     examplejs_printLines = [];
   var node = jnodes.Parser.parse(`<input type=text readonly`);
-  examplejs_print(JSON.stringify(node));
+  examplejs_print(JSON.stringify(node).replace(/"id":"\w+",/g, ''));
   assert.equal(examplejs_printLines.join("\n"), "{\"type\":\"root\",\"pos\":0,\"endpos\":25,\"children\":[{\"type\":\"text\",\"pos\":0,\"endpos\":25,\"value\":\"<input type=text readonly\"}]}"); examplejs_printLines = [];
   });
           
@@ -58,7 +58,7 @@ describe("src/ts/Parser.ts", function () {
 
   (function() {
   var node = jnodes.Parser.parse(`<div><span></div></span>`);
-  examplejs_print(JSON.stringify(node));
+  examplejs_print(JSON.stringify(node).replace(/"id":"\w+",/g, ''));
   // * throw
   }).should.throw();
   });
@@ -68,7 +68,7 @@ describe("src/ts/Parser.ts", function () {
 
   (function() {
   var node = jnodes.Parser.parse(`<section><div></div>\n</span>`);
-  examplejs_print(JSON.stringify(node));
+  examplejs_print(JSON.stringify(node).replace(/"id":"\w+",/g, ''));
   // * throw
   }).should.throw();
   });
@@ -76,7 +76,7 @@ describe("src/ts/Parser.ts", function () {
   it("parser_parse:tag nesting", function () {
     examplejs_printLines = [];
   var node = jnodes.Parser.parse(`<div><div><div></div><div></div></div></div>`);
-  examplejs_print(JSON.stringify(node));
+  examplejs_print(JSON.stringify(node).replace(/"id":"\w+",/g, ''));
   assert.equal(examplejs_printLines.join("\n"), "{\"type\":\"root\",\"pos\":0,\"endpos\":44,\"children\":[{\"type\":\"block\",\"pos\":0,\"endpos\":44,\"tag\":\"div\",\"attrs\":[],\"indent\":\"\",\"selfClosing\":false,\"children\":[{\"type\":\"block\",\"pos\":5,\"endpos\":38,\"tag\":\"div\",\"attrs\":[],\"indent\":\"\",\"selfClosing\":false,\"children\":[{\"type\":\"block\",\"pos\":10,\"endpos\":21,\"tag\":\"div\",\"attrs\":[],\"indent\":\"\",\"selfClosing\":false,\"children\":[]},{\"type\":\"block\",\"pos\":21,\"endpos\":32,\"tag\":\"div\",\"attrs\":[],\"indent\":\"\",\"selfClosing\":false,\"children\":[]}]}]}]}"); examplejs_printLines = [];
   });
           

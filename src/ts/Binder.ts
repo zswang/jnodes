@@ -2,6 +2,8 @@
     import="./Observer.js" depend="observer" trigger="release">*/
 import { observer } from "./Observer" /*</jdists>*/
 
+import { H5Node } from "./Types"
+
 /**
  * 内部渲染函数类型
  *
@@ -36,7 +38,7 @@ interface OuterRenderBindFunction {
  * @param attrs 属性列表
  */
 interface AttrsRenderFunction {
-  (scope: Scope, attrs: Attr[]): string
+  (scope: Scope, attrs: Attr[], node: H5Node): string
 }
 
 interface Attr {
@@ -556,21 +558,42 @@ class Binder {
       this.lifecycleEvent(scope, 'create')
       this.lifecycleEvent(scope, 'update')
     })
-    this._attrsRender = options.attrsRender || ((scope: Scope, attrs: Attr[]): string => {
+    this._attrsRender = options.attrsRender || ((scope: Scope, attrs: Attr[], node: H5Node): string => {
       if (!attrs) {
         return ''
       }
       let dictValues = {}
       let dictQuoteds = {}
+      let hasScopeAttr = false
       attrs.filter((attr) => {
+        if (':' !== attr.name[0] && '@' !== attr.name[0]) {
+          return true
+        }
+        let name = attr.name.slice(1)
+        if (name !== this._bindAttributeName && name !== this._dependAttributeName) {
+          return true
+        }
+        name = this._scopeAttributeName
+        dictQuoteds[name] = attr.quoted
+        dictValues[name] = [scope.id]
+        hasScopeAttr = true
+
+        scope.methods = scope.methods || {}
+        Object.keys(scope.methods).forEach((key) => {
+          if (typeof scope.methods[key] === 'function') {
+            if (!(scope.methods[key] as any).$$scope) {
+              delete scope.methods[key]
+            }
+          }
+        })
+
+      }).filter((attr) => {
         if (':' !== attr.name[0] && '@' !== attr.name[0]) {
           return true
         }
 
         let name = attr.name.slice(1)
-        if (name === this._bindAttributeName || name === this._dependAttributeName) {
-          name = this._scopeAttributeName
-        } else if ('@' === attr.name[0]) {
+        if ('@' === attr.name[0]) {
           let arr = name.split('.')
           name = arr[0]
           if (name === 'create') {
@@ -584,10 +607,6 @@ class Binder {
         }
         let values = dictValues[name] = dictValues[name] || []
         dictQuoteds[name] = attr.quoted
-        if (name === this._scopeAttributeName) {
-          values.push(scope.id)
-          return
-        }
 
         if (attr.value === '' || attr.value === null || attr.value === undefined ||
           attr.value === false) {
@@ -608,9 +627,19 @@ class Binder {
             })
             break
           case 'function':
-            let methodId = `@${(jnodes_guid++).toString(36)}`
             scope.methods = scope.methods || {}
-            scope.methods[methodId] = attr.value
+            let methodId
+            if (hasScopeAttr) {
+              methodId = scope.methods[`v:${attr.value}`]
+            }
+            if (!methodId) {
+              methodId = `@${(jnodes_guid++).toString(36)}`
+              scope.methods[methodId] = attr.value
+              if (hasScopeAttr) {
+                attr.value.$$scope = scope
+                scope.methods[`v:${attr.value}`] = methodId
+              }
+            }
             values.push(methodId)
             break
         }

@@ -366,21 +366,39 @@ var Binder = (function () {
             _this.lifecycleEvent(scope, 'create');
             _this.lifecycleEvent(scope, 'update');
         });
-        this._attrsRender = options.attrsRender || (function (scope, attrs) {
+        this._attrsRender = options.attrsRender || (function (scope, attrs, node) {
             if (!attrs) {
                 return '';
             }
             var dictValues = {};
             var dictQuoteds = {};
+            var hasScopeAttr = false;
             attrs.filter(function (attr) {
                 if (':' !== attr.name[0] && '@' !== attr.name[0]) {
                     return true;
                 }
                 var name = attr.name.slice(1);
-                if (name === _this._bindAttributeName || name === _this._dependAttributeName) {
-                    name = _this._scopeAttributeName;
+                if (name !== _this._bindAttributeName && name !== _this._dependAttributeName) {
+                    return true;
                 }
-                else if ('@' === attr.name[0]) {
+                name = _this._scopeAttributeName;
+                dictQuoteds[name] = attr.quoted;
+                dictValues[name] = [scope.id];
+                hasScopeAttr = true;
+                scope.methods = scope.methods || {};
+                Object.keys(scope.methods).forEach(function (key) {
+                    if (typeof scope.methods[key] === 'function') {
+                        if (!scope.methods[key].$$scope) {
+                            delete scope.methods[key];
+                        }
+                    }
+                });
+            }).filter(function (attr) {
+                if (':' !== attr.name[0] && '@' !== attr.name[0]) {
+                    return true;
+                }
+                var name = attr.name.slice(1);
+                if ('@' === attr.name[0]) {
                     var arr = name.split('.');
                     name = arr[0];
                     if (name === 'create') {
@@ -396,10 +414,6 @@ var Binder = (function () {
                 }
                 var values = dictValues[name] = dictValues[name] || [];
                 dictQuoteds[name] = attr.quoted;
-                if (name === _this._scopeAttributeName) {
-                    values.push(scope.id);
-                    return;
-                }
                 if (attr.value === '' || attr.value === null || attr.value === undefined ||
                     attr.value === false) {
                     return;
@@ -418,9 +432,19 @@ var Binder = (function () {
                         });
                         break;
                     case 'function':
-                        var methodId = "@" + (jnodes_guid++).toString(36);
                         scope.methods = scope.methods || {};
-                        scope.methods[methodId] = attr.value;
+                        var methodId = void 0;
+                        if (hasScopeAttr) {
+                            methodId = scope.methods["v:" + attr.value];
+                        }
+                        if (!methodId) {
+                            methodId = "@" + (jnodes_guid++).toString(36);
+                            scope.methods[methodId] = attr.value;
+                            if (hasScopeAttr) {
+                                attr.value.$$scope = scope;
+                                scope.methods["v:" + attr.value] = methodId;
+                            }
+                        }
                         values.push(methodId);
                         break;
                 }

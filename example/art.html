@@ -54,7 +54,7 @@
 <script src="../node_modules/h5tap/h5tap.js"></script>
 <script src="../jnodes.js"></script>
 <script src="books.js"></script>
-<script src="../src/js/Compiler/art.js"></script>
+<script src="../lib/Adapter/art.js"></script>
 <script>
 (function () {
   var rootData = {
@@ -73,7 +73,7 @@
   var renderBook1 = window.template.compile(jnodes.Parser.build(root, {
       bindObjectName: jnodes.binder._bindObjectName,
       out: (window.template.compile.Compiler && window.template.compile.Compiler.CONSTS.OUT) || '$out',
-    }, compiler_art), {
+    }, adapter_art), {
     imports: {
       jnodes: jnodes
     }
@@ -85,13 +85,12 @@
   var element = document.querySelector('#books_art');
   var script = document.querySelector('#books_art script');
 
-  // var compiler = new jnodes.Compiler();
   var root = jnodes.Parser.parse(script.innerHTML);
   var textarea = document.querySelector('textarea')
   var template = jnodes.Parser.build(root, {
       bindObjectName: jnodes.binder._bindObjectName,
       out: (window.template.compile.Compiler && window.template.compile.Compiler.CONSTS.OUT) || '$out',
-    }, compiler_art);
+    }, adapter_art);
   textarea.value = template;
   element.innerHTML = window.template.render(template, rootData, {
     imports: {
