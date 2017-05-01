@@ -32,7 +32,7 @@ import { H5Node } from "../Types"
   ```html
   <div>
     <script type="text/jhtmls">
-    <input type="text" @keyup.enter="pos.x = parseInt(this.value)" value="-1">
+    <input type=text @keyup.enter="pos.x = parseInt(this.value)" value="-1">
     <div>
       <button :bind="pos" @click="pos.x++" @update.none="console.info('none')">plus #{pos.x}</button>
     </div>
@@ -100,7 +100,7 @@ import { H5Node } from "../Types"
   ```html
   <div>
     <script type="text/jhtmls">
-    <div :bind="books">
+    <div :bind="books" class="list box">
       <h4>#{books.filter(function (book) { return book.star; }).length}</h4>
       <ul>
       books.forEach(function (book) {
@@ -139,6 +139,9 @@ import { H5Node } from "../Types"
   data.books[1].star = true;
   console.log(div.querySelector('h4').innerHTML);
   // > 2
+
+  console.log(div.querySelector('div').className);
+  // > list box
   ```
    */
 function adapter_jhtmls(node: H5Node, bindObjectName: string) {

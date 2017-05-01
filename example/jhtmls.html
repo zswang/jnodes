@@ -23,7 +23,8 @@
       }
       <h3 :bind="info">create: #{info.createCount} --- destroy: #{info.destroyCount} --- update: #{info.updateCount}</h3>
       <div>
-        <input type="text" @keyup.enter="console.log('enter')" @keyup.esc="console.log('esc')">
+        <input type="text" placeholder="Write text."
+          @keyup.enter="console.log('enter')" @keyup.esc="console.log('esc')">
         <button @click="console.log(1)" @click="console.log(2)">test</button>
         <button @tap="books.shift()">remove</button>
         function _sort() {

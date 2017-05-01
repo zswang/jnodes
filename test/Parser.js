@@ -20,9 +20,9 @@ describe("src/ts/Parser.ts", function () {
 
   it("parser_parse:base", function () {
     examplejs_printLines = [];
-  var node = jnodes.Parser.parse(`<!--test--><div class="box"></div>`);
+  var node = jnodes.Parser.parse(`<!-- ts --><div class="box"></div>`);
   examplejs_print(JSON.stringify(node).replace(/"id":"\w+",/g, ''));
-  assert.equal(examplejs_printLines.join("\n"), "{\"type\":\"root\",\"pos\":0,\"endpos\":34,\"children\":[{\"type\":\"comment\",\"pos\":0,\"endpos\":11,\"value\":\"<!--test-->\",\"indent\":\"\"},{\"type\":\"block\",\"pos\":11,\"endpos\":34,\"tag\":\"div\",\"attrs\":[{\"name\":\"class\",\"value\":\"box\",\"quoted\":\"\\\"\"}],\"indent\":\"\",\"selfClosing\":false,\"children\":[]}]}"); examplejs_printLines = [];
+  assert.equal(examplejs_printLines.join("\n"), "{\"type\":\"root\",\"pos\":0,\"endpos\":34,\"children\":[{\"type\":\"comment\",\"pos\":0,\"endpos\":11,\"value\":\"<!-- ts -->\",\"indent\":\"\"},{\"type\":\"block\",\"pos\":11,\"endpos\":34,\"tag\":\"div\",\"attrs\":[{\"name\":\"class\",\"value\":\"box\",\"quoted\":\"\\\"\"}],\"indent\":\"\",\"selfClosing\":false,\"children\":[]}]}"); examplejs_printLines = [];
   });
           
   it("parser_parse:text", function () {
@@ -34,9 +34,9 @@ describe("src/ts/Parser.ts", function () {
           
   it("parser_parse:comment not closed.", function () {
     examplejs_printLines = [];
-  var node = jnodes.Parser.parse(`<!--hello`);
+  var node = jnodes.Parser.parse(`<!-- okay`);
   examplejs_print(JSON.stringify(node).replace(/"id":"\w+",/g, ''));
-  assert.equal(examplejs_printLines.join("\n"), "{\"type\":\"root\",\"pos\":0,\"endpos\":9,\"children\":[{\"type\":\"comment\",\"pos\":0,\"endpos\":9,\"value\":\"<!--hello\",\"indent\":\"\"}]}"); examplejs_printLines = [];
+  assert.equal(examplejs_printLines.join("\n"), "{\"type\":\"root\",\"pos\":0,\"endpos\":9,\"children\":[{\"type\":\"comment\",\"pos\":0,\"endpos\":9,\"value\":\"<!-- okay\",\"indent\":\"\"}]}"); examplejs_printLines = [];
   });
           
   it("parser_parse:attribute is emtpy", function () {
@@ -78,6 +78,13 @@ describe("src/ts/Parser.ts", function () {
   var node = jnodes.Parser.parse(`<div><div><div></div><div></div></div></div>`);
   examplejs_print(JSON.stringify(node).replace(/"id":"\w+",/g, ''));
   assert.equal(examplejs_printLines.join("\n"), "{\"type\":\"root\",\"pos\":0,\"endpos\":44,\"children\":[{\"type\":\"block\",\"pos\":0,\"endpos\":44,\"tag\":\"div\",\"attrs\":[],\"indent\":\"\",\"selfClosing\":false,\"children\":[{\"type\":\"block\",\"pos\":5,\"endpos\":38,\"tag\":\"div\",\"attrs\":[],\"indent\":\"\",\"selfClosing\":false,\"children\":[{\"type\":\"block\",\"pos\":10,\"endpos\":21,\"tag\":\"div\",\"attrs\":[],\"indent\":\"\",\"selfClosing\":false,\"children\":[]},{\"type\":\"block\",\"pos\":21,\"endpos\":32,\"tag\":\"div\",\"attrs\":[],\"indent\":\"\",\"selfClosing\":false,\"children\":[]}]}]}]}"); examplejs_printLines = [];
+  });
+          
+  it("parser_parse:attribute spance", function () {
+    examplejs_printLines = [];
+  var node = jnodes.Parser.parse(`<input type="text" placeholder="What needs to be done?"/>`);
+  examplejs_print(JSON.stringify(node).replace(/"id":"\w+",/g, ''));
+  assert.equal(examplejs_printLines.join("\n"), "{\"type\":\"root\",\"pos\":0,\"endpos\":57,\"children\":[{\"type\":\"single\",\"pos\":0,\"endpos\":57,\"tag\":\"input\",\"attrs\":[{\"name\":\"type\",\"value\":\"text\",\"quoted\":\"\\\"\"},{\"name\":\"placeholder\",\"value\":\"What needs to be done?\",\"quoted\":\"\\\"\"}],\"indent\":\"\",\"selfClosing\":true}]}"); examplejs_printLines = [];
   });
           
   it("parser_build:base", function () {

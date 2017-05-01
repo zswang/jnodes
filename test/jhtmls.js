@@ -43,7 +43,7 @@ describe("src/ts/Adapter/jhtmls.ts", function () {
   });
           
   it("jsdom@adapter_jhtmls:base keyup.enter", function (done) {
-    jsdom.env("  <div>\n    <script type=\"text/jhtmls\">\n    <input type=\"text\" @keyup.enter=\"pos.x = parseInt(this.value)\" value=\"-1\">\n    <div>\n      <button :bind=\"pos\" @click=\"pos.x++\" @update.none=\"console.info('none')\">plus #{pos.x}</button>\n    </div>\n    <h1 :bind=\"pos\"><button @click=\"pos.x++\">plus #{pos.x}</button></h1>\n    </script>\n  </div>", {
+    jsdom.env("  <div>\n    <script type=\"text/jhtmls\">\n    <input type=text @keyup.enter=\"pos.x = parseInt(this.value)\" value=\"-1\">\n    <div>\n      <button :bind=\"pos\" @click=\"pos.x++\" @update.none=\"console.info('none')\">plus #{pos.x}</button>\n    </div>\n    <h1 :bind=\"pos\"><button @click=\"pos.x++\">plus #{pos.x}</button></h1>\n    </script>\n  </div>", {
         features: {
           FetchExternalResources : ["script", "link"],
           ProcessExternalResources: ["script"]
@@ -121,7 +121,7 @@ describe("src/ts/Adapter/jhtmls.ts", function () {
   });
           
   it("jsdom@adapter_jhtmls:base depend", function (done) {
-    jsdom.env("  <div>\n    <script type=\"text/jhtmls\">\n    <div :bind=\"books\">\n      <h4>#{books.filter(function (book) { return book.star; }).length}</h4>\n      <ul>\n      books.forEach(function (book) {\n        <li :depend=\"book\">#{book.title}</li>\n      })\n      </ul>\n    </script>\n  </div>", {
+    jsdom.env("  <div>\n    <script type=\"text/jhtmls\">\n    <div :bind=\"books\" class=\"list box\">\n      <h4>#{books.filter(function (book) { return book.star; }).length}</h4>\n      <ul>\n      books.forEach(function (book) {\n        <li :depend=\"book\">#{book.title}</li>\n      })\n      </ul>\n    </script>\n  </div>", {
         features: {
           FetchExternalResources : ["script", "link"],
           ProcessExternalResources: ["script"]
@@ -170,6 +170,9 @@ describe("src/ts/Adapter/jhtmls.ts", function () {
   data.books[1].star = true;
   examplejs_print(div.querySelector('h4').innerHTML);
   assert.equal(examplejs_printLines.join("\n"), "2"); examplejs_printLines = [];
+
+  examplejs_print(div.querySelector('div').className);
+  assert.equal(examplejs_printLines.join("\n"), "list box"); examplejs_printLines = [];
   });
           
 });

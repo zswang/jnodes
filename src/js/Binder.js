@@ -450,6 +450,7 @@ var Binder = (function () {
                 }
             }).forEach(function (attr) {
                 var values = dictValues[attr.name] = dictValues[attr.name] || [];
+                dictQuoteds[attr.name] = attr.quoted;
                 if (attr.value === '' || values.indexOf(attr.value) >= 0) {
                     return;
                 }
