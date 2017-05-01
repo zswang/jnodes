@@ -1,6 +1,6 @@
 {
   "name": "jnodes",
-  "version": "0.4.17",
+  "version": "0.4.20",
   "main": "jnodes.js",
   "scripts": {
     "_update_version": "node version.js",
@@ -35,7 +35,6 @@
   "description": "Front end template data binding.",
   "dependencies": {},
   "devDependencies": {
-    "art-template": "^4.0.0",
     "ejs": "^2.5.5",
     "gulp": "^3.9.1",
     "gulp-connect": "^5.0.0",

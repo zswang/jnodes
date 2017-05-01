@@ -25,10 +25,8 @@ gulp.task('example', function() {
 global.jnodes = require('../jnodes.js');
 global.ejs = require('ejs');
 global.jhtmls = require('jhtmls');
-global.art = require('art-template/lib/template-web');
 global.adapter_jhtmls = require('../lib/Adapter/jhtmls').adapter_jhtmls;
 global.adapter_ejs = require('../lib/Adapter/ejs').adapter_ejs;
-global.adapter_art = require('../lib/Adapter/art').adapter_art;
       `
     }))
     .pipe(rename({

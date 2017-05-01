@@ -5,7 +5,7 @@
    * Front end template data binding.
    * @author
    *   zswang (http://weibo.com/zswang)
-   * @version 0.4.17
+   * @version 0.4.20
    * @date 2017-05-01
   * @license MIT
   */
