@@ -5,8 +5,8 @@
    * Front end template data binding.
    * @author
    *   zswang (http://weibo.com/zswang)
-   * @version 0.4.20
-   * @date 2017-05-01
+   * @version 0.4.45
+   * @date 2017-05-16
   * @license MIT
   */
   /*<function name="observer">*/
@@ -174,7 +174,7 @@ var jnodes_guid = 0;
   var data = {x: 1, y: 2};
   var rootScope = {};
   var count = 0;
-  jnodes.binder.bind(data, rootScope, function (output) {
+  jnodes.binder.bind([data], rootScope, function (output) {
     output.push('<div></div>');
     count++;
   });
@@ -197,23 +197,21 @@ var jnodes_guid = 0;
   // > undefined
   console.log(JSON.stringify(jnodes.binder.templateAdapter('none')));
   // > undefined
-  console.log(JSON.stringify(jnodes.binder.templateRender('none')));
-  // > undefined
   console.log(JSON.stringify(jnodes.binder._attrsRender(rootScope)));
   // > ""
   var scope = {
     children: [{
-      model: {
+      models: [{
         $$binds: function () {
           return [];
         }
-      }
+      }]
     }]
   };
   jnodes.binder.cleanChildren(scope);
   var scope = {
     children: [{
-      model: {}
+      models: [{}]
     }]
   };
   jnodes.binder.cleanChildren(scope);
@@ -224,7 +222,7 @@ var jnodes_guid = 0;
     parent: {
       type: 'bind',
       binder: jnodes.binder,
-      model: {}
+      models: [{}]
     }
   };
   var data = { x: 1 };
@@ -236,25 +234,33 @@ var jnodes_guid = 0;
     parent: {
       type: 'depend',
       binder: jnodes.binder,
-      model: {
+      models: [{
         $$binds: function () {
           return [{
             id: 0,
             type: 'bind',
             binder: jnodes.binder,
-            model: {},
+            models: [{}],
           }, {
             id: 0,
             type: 'depend',
             binder: jnodes.binder,
-            model: {},
+            models: [{}],
             parent: {
               binder: jnodes.binder,
-              model: {},
+            }
+          }, {
+            id: 0,
+            type: 'depend',
+            binder: jnodes.binder,
+            models: [{}],
+            parent: {
+              binder: jnodes.binder,
+              models: [{}],
             }
           }]
         },
-      },
+      }],
     },
   };
   var data = { x: 1 };
@@ -264,7 +270,7 @@ var jnodes_guid = 0;
     id: 0,
     type: 'bind',
     binder: jnodes.binder,
-    model: {},
+    models: [{}],
   };
   var $$binds = function() {
     return [$$scope]
@@ -273,14 +279,14 @@ var jnodes_guid = 0;
     id: 0,
     type: 'depend',
     binder: jnodes.binder,
-    model: {},
+    models: [{}],
     parent: {
       id: 0,
       type: 'bind',
       binder: jnodes.binder,
-      model: {
+      models: [{
         $$binds: $$binds
-      },
+      }],
     }
   };
   var scope = {
@@ -289,16 +295,16 @@ var jnodes_guid = 0;
     parent: {
       type: 'depend',
       binder: jnodes.binder,
-      model: {
+      models: [{
         $$binds: function () {
           return [{
             id: 0,
             type: 'bind',
             binder: jnodes.binder,
-            model: {},
+            models: [{}],
           }, parent, parent]
         }
-      },
+      }],
     },
   };
   var data = { x: 1 };
@@ -313,15 +319,12 @@ var jnodes_guid = 0;
     <ul :bind="books" @create="books.loaded = 'done'">
     books.forEach(function (book) {
       <li :bind="book">
-        <:template name="book"/>
+        <a href="#{book.id}">#{book.title}</a>
       </li>
     });
     </ul>
     </script>
   </div>
-  <script type="text/jhtmls" id="book">
-  <a href="#{id}">#{title}</a>
-  </script>
   ```
   ```js
   jnodes.binder = new jnodes.Binder();
@@ -330,10 +333,6 @@ var jnodes_guid = 0;
     var node = jnodes.Parser.parse(templateCode);
     var code = jnodes.Parser.build(node, bindObjectName, adapter_jhtmls);
     return jhtmls.render(code);
-  });
-  var bookRender = jnodes.binder.templateAdapter('jhtmls', document.querySelector('#book').innerHTML);
-  jnodes.binder.registerTemplate('book', function (scope) {
-    return bookRender(scope.model);
   });
   var div = document.querySelector('div');
   div.innerHTML = jnodes.binder.templateAdapter('jhtmls', div.querySelector('script').innerHTML)({
@@ -353,11 +352,6 @@ var jnodes_guid = 0;
   console.log(div.querySelector('ul li a').innerHTML);
   // > Jane Eyre
   console.log(jnodes.binder.scope(div) === rootScope);
-  // > true
-  console.log(jnodes.binder.scope(div.querySelector('ul li a')).model.id === 1);
-  // > true
-  books.shift();
-  console.log(jnodes.binder.scope(div.querySelector('ul li a')).model.id === 2);
   // > true
   ```
  * @example bind():bind jhtmls 2
@@ -391,13 +385,6 @@ var jnodes_guid = 0;
   rootScope.element = div;
   console.log(books.loaded);
   // > done
-  console.log(JSON.stringify(jnodes.binder.scope(div.querySelector('ul li a')).model));
-  // > "book1"
-  console.log(JSON.stringify(jnodes.binder.scope(div.querySelector('ul li span')).model));
-  // > 1
-  books.shift();
-  console.log(JSON.stringify(jnodes.binder.scope(div.querySelector('ul li a')).model));
-  // > "book2"
   function findEventTarget(parent, target, selector) {
     var elements = [].slice.call(parent.querySelectorAll(selector));
     while (target && elements.indexOf(target) < 0) {
@@ -431,7 +418,7 @@ var jnodes_guid = 0;
   ```js
   var data = {x: 1, y: 2};
   var binder = new jnodes.Binder();
-  var scope = binder.bind(data, null, null);
+  var scope = binder.bind([data], null, null);
   var element = {};
   global.document = { querySelector: function(selector) {
     return element;
@@ -439,7 +426,7 @@ var jnodes_guid = 0;
   binder.update(scope);
   console.log(JSON.stringify(element));
   // > {}
-  var scope = binder.bind(data, null, null, function (output) {
+  var scope = binder.bind([data], null, null, function (output) {
     output.push('<div></div>');
   });
   var element = {};
@@ -483,7 +470,6 @@ var Binder = (function () {
         this._adapters = {};
         options = options || {};
         this._binds = {};
-        this._templates = {};
         this._adapters = {};
         this._bindObjectName = options.bindObjectName || 'jnodes.binder';
         this._bindAttributeName = options.bindAttributeName || 'bind';
@@ -491,7 +477,6 @@ var Binder = (function () {
         this._scopeAttributeName = options.scopeAttributeName || "data-jnodes-scope";
         this._eventAttributePrefix = options.eventAttributePrefix || "data-jnodes-event-";
         this._imports = options.imports;
-        this._templates = {};
         this._checkers = {};
         this._findElement = options.findElement || (function (scope) {
             return document.querySelector("[" + _this._scopeAttributeName + "=\"" + scope.id + "\"]");
@@ -631,16 +616,6 @@ var Binder = (function () {
             }).join(' ');
         });
     }
-    Binder.prototype.registerTemplate = function (templateName, render) {
-        this._templates[templateName] = render;
-    };
-    Binder.prototype.templateRender = function (templateName, scope) {
-        var render = this._templates[templateName];
-        if (!render) {
-            return;
-        }
-        return render(scope);
-    };
     Binder.prototype.registerChecker = function (eventType, checker) {
         this._checkers[eventType] = checker;
     };
@@ -665,14 +640,19 @@ var Binder = (function () {
         var _this = this;
         if (scope.children) {
             scope.children.forEach(function (item) {
-                var binds = item.model && item.model.$$binds && item.model.$$binds();
-                if (binds) {
-                    // remove scope
-                    var index = binds.indexOf(item);
-                    if (index >= 0) {
-                        binds.splice(index, 1);
-                    }
+                if (!item.models) {
+                    return;
                 }
+                item.models.forEach(function (model) {
+                    var binds = model && model.$$binds && model.$$binds();
+                    if (binds) {
+                        // remove scope
+                        var index = binds.indexOf(item);
+                        if (index >= 0) {
+                            binds.splice(index, 1);
+                        }
+                    }
+                });
                 delete _this._binds[item.id];
                 _this.cleanChildren(item);
                 scope.children = [];
@@ -721,15 +701,15 @@ var Binder = (function () {
     /**
      * 数据绑定
      *
-     * @param model 绑定数据
+     * @param models 绑定数据集合
      * @param parent 父级作用域
      * @param outerRender 外渲染函数
      */
-    Binder.prototype.bind = function (model, parent, outerBindRender, innerBindRender) {
+    Binder.prototype.bind = function (models, parent, outerBindRender, innerBindRender) {
         var _this = this;
         var scope = {
             type: 'bind',
-            model: model,
+            models: models,
             parent: parent,
             binder: this,
         };
@@ -759,7 +739,9 @@ var Binder = (function () {
         }
         scope.id = (jnodes_guid++).toString(36);
         this._binds[scope.id] = scope;
-        this.observer(model, scope);
+        models.forEach(function (model) {
+            _this.observer(model, scope);
+        });
         return scope;
     };
     Binder.prototype.observer = function (model, scope) {
@@ -770,18 +752,23 @@ var Binder = (function () {
         }
         function pushParents(parents, scope) {
             var parent = scope.parent;
-            if (parent.model.$$binds) {
-                parent.model.$$binds().forEach(function (bind) {
-                    if (bind.type !== 'depend') {
-                        if (parents.indexOf(bind) < 0) {
-                            parents.push(bind);
-                        }
-                    }
-                    else {
-                        pushParents(parents, bind);
-                    }
-                });
+            if (!parent.models) {
+                return;
             }
+            parent.models.forEach(function (model) {
+                if (model.$$binds) {
+                    model.$$binds().forEach(function (bind) {
+                        if (bind.type !== 'depend') {
+                            if (parents.indexOf(bind) < 0) {
+                                parents.push(bind);
+                            }
+                        }
+                        else {
+                            pushParents(parents, bind);
+                        }
+                    });
+                }
+            });
         }
         // 只绑定对象类型
         if (model && typeof model === 'object') {
@@ -816,20 +803,23 @@ var Binder = (function () {
     /**
      * 声明依赖关系
      *
-     * @param model 数据
+     * @param models 数据集合
      * @param scope 被依赖的作用域
      */
-    Binder.prototype.depend = function (model, parent, outerBindRender) {
+    Binder.prototype.depend = function (models, parent, outerBindRender) {
+        var _this = this;
         var scope = {
             type: 'depend',
-            model: model,
+            models: models,
             parent: parent,
             binder: this,
             outerRender: function (output) {
                 return outerBindRender(output, scope, true);
             },
         };
-        this.observer(model, scope);
+        models.forEach(function (model) {
+            _this.observer(model, scope);
+        });
         scope.id = (jnodes_guid++).toString(36);
         this._binds[scope.id] = scope;
         return scope;
@@ -889,7 +879,7 @@ var Binder = (function () {
      * @example triggerScopeEvent:coverage 2
       ```js
       var binder = new jnodes.Binder();
-      var scope = binder.bind({ x: 1 }, null, function (output) {
+      var scope = binder.bind([{ x: 1 }], null, function (output) {
         output.push('<div></div>');
       });
       var element = {

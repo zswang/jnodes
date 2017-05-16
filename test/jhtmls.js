@@ -16,30 +16,6 @@ describe("src/ts/Adapter/jhtmls.ts", function () {
   var jsdom = require('jsdom');
   
 
-  it("adapter_jhtmls:base1", function () {
-    examplejs_printLines = [];
-  var node = {
-    tag: ':template'
-  };
-  adapter_jhtmls(node);
-  examplejs_print(JSON.stringify(node));
-  assert.equal(examplejs_printLines.join("\n"), "{\"tag\":\":template\"}"); examplejs_printLines = [];
-  });
-          
-  it("adapter_jhtmls:base2", function () {
-    examplejs_printLines = [];
-  var node = {
-    tag: ':template',
-    attrs: [{
-      name: 'class',
-      value: 'book'
-    }]
-  };
-  adapter_jhtmls(node);
-  examplejs_print(JSON.stringify(node));
-  assert.equal(examplejs_printLines.join("\n"), "{\"tag\":\":template\",\"attrs\":[{\"name\":\"class\",\"value\":\"book\"}]}"); examplejs_printLines = [];
-  });
-          
   it("jsdom@adapter_jhtmls:base keyup.enter", function (done) {
     jsdom.env("  <div>\n    <script type=\"text/jhtmls\">\n    <input type=text @keyup.enter=\"pos.x = parseInt(this.value)\" value=\"-1\">\n    <div>\n      <button :bind=\"pos\" @click=\"pos.x++\" @update.none=\"console.info('none')\">plus #{pos.x}</button>\n    </div>\n    <h1 :bind=\"pos\"><button @click=\"pos.x++\">plus #{pos.x}</button></h1>\n    </script>\n  </div>", {
         features: {

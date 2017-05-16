@@ -6,28 +6,6 @@ import { H5Node } from "../Types"
  *
  * @param node 节点
  * @param bindObjectName 全局对象名
- * @example adapter_jhtmls:base1
-  ```js
-  var node = {
-    tag: ':template'
-  };
-  adapter_jhtmls(node);
-  console.log(JSON.stringify(node));
-  // > {"tag":":template"}
-  ```
- * @example adapter_jhtmls:base2
-  ```js
-  var node = {
-    tag: ':template',
-    attrs: [{
-      name: 'class',
-      value: 'book'
-    }]
-  };
-  adapter_jhtmls(node);
-  console.log(JSON.stringify(node));
-  // > {"tag":":template","attrs":[{"name":"class","value":"book"}]}
-  ```
  * @example adapter_jhtmls:base keyup.enter
   ```html
   <div>
@@ -148,7 +126,7 @@ function adapter_jhtmls(node: H5Node, bindObjectName: string) {
   let indent = node.indent || ''
   let inserFlag = `/***/ `
   if (node.type === 'root') {
-    node.beforebegin = `${indent}${inserFlag}var _rootScope_ = ${bindObjectName}.bind(this, { root: true }, null, function (_output_, _scope_) {`
+    node.beforebegin = `${indent}${inserFlag}var _rootScope_ = ${bindObjectName}.bind([this], { root: true }, null, function (_output_, _scope_) {`
     node.afterend = `\n${indent}${inserFlag}}); _rootScope_.innerRender(_output_); ${bindObjectName}.$$scope = _rootScope_;`
     return
   }
@@ -161,28 +139,18 @@ function adapter_jhtmls(node: H5Node, bindObjectName: string) {
     return
   }
 
-  if (node.tag === ':template') {
-    node.attrs.some((attr) => {
-      if (attr.name === 'name') {
-        node.overwriteNode = `\n${indent}${inserFlag}_output_.push(${bindObjectName}.templateRender(${JSON.stringify(attr.value)}, _scope_, ${bindObjectName}.bind));`
-        return true
-      }
-    })
-    return
-  }
-
   let varintAttrs = `\n${indent}${inserFlag}var _attrs_ = [\n`
   let hasOverwriteAttr
   node.attrs.forEach((attr) => {
     let value;
     if (attr.name[0] === ':') {
       if (attr.name === ':bind') {
-        node.beforebegin = `\n${indent}${inserFlag}${bindObjectName}.bind(${attr.value}, _scope_, function (_output_, _scope_, holdInner) {\n`
+        node.beforebegin = `\n${indent}${inserFlag}${bindObjectName}.bind([${attr.value}], _scope_, function (_output_, _scope_, holdInner) {\n`
         node.beforeend = `\n${indent}${inserFlag}_scope_.innerRender = function(_output_) {\n`
         node.afterbegin = `\n${indent}${inserFlag}}; if (holdInner) { _scope_.innerRender(_output_); }\n`
         node.afterend = `\n${indent}${inserFlag}}).outerRender(_output_, true);\n`
       } else if (attr.name === ':depend') {
-        node.beforebegin = `\n${indent}${inserFlag}${bindObjectName}.depend(${attr.value}, _scope_, function (_output_, _scope_) {\n`
+        node.beforebegin = `\n${indent}${inserFlag}${bindObjectName}.depend([${attr.value}], _scope_, function (_output_, _scope_) {\n`
         node.afterend = `\n${indent}${inserFlag}}).outerRender(_output_);\n`
       }
       hasOverwriteAttr = true

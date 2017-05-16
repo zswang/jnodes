@@ -59,7 +59,7 @@ interface Scope {
   /**
    * 被绑定到数据
    */
-  model: any
+  models: any[]
   /**
    * 父作用域
    */
@@ -123,17 +123,10 @@ interface UpdateElementFunction {
   (element: Element, scope: Scope): void
 }
 
-interface TemplateRenderFunction {
-  (scope: Scope): string
-}
-
 interface TemplateAdapterFunction {
   (templateCode: string, bindObjectName: string)
 }
 
-interface TemplateRenderBindFunction {
-  (templateName: string, scope: Scope): string
-}
 interface ElementEvent {
   type: string
   target: Element
@@ -163,7 +156,7 @@ let jnodes_guid: number = 0
   var data = {x: 1, y: 2};
   var rootScope = {};
   var count = 0;
-  jnodes.binder.bind(data, rootScope, function (output) {
+  jnodes.binder.bind([data], rootScope, function (output) {
     output.push('<div></div>');
     count++;
   });
@@ -190,23 +183,22 @@ let jnodes_guid: number = 0
   // > undefined
   console.log(JSON.stringify(jnodes.binder.templateAdapter('none')));
   // > undefined
-  console.log(JSON.stringify(jnodes.binder.templateRender('none')));
-  // > undefined
   console.log(JSON.stringify(jnodes.binder._attrsRender(rootScope)));
   // > ""
   var scope = {
     children: [{
-      model: {
+      models: [{
         $$binds: function () {
           return [];
         }
-      }
+      }]
     }]
   };
   jnodes.binder.cleanChildren(scope);
   var scope = {
     children: [{
-      model: {}
+      models: [{}]
+    },{
     }]
   };
   jnodes.binder.cleanChildren(scope);
@@ -218,7 +210,7 @@ let jnodes_guid: number = 0
     parent: {
       type: 'bind',
       binder: jnodes.binder,
-      model: {}
+      models: [{}]
     }
   };
   var data = { x: 1 };
@@ -231,25 +223,33 @@ let jnodes_guid: number = 0
     parent: {
       type: 'depend',
       binder: jnodes.binder,
-      model: {
+      models: [{
         $$binds: function () {
           return [{
             id: 0,
             type: 'bind',
             binder: jnodes.binder,
-            model: {},
+            models: [{}],
           }, {
             id: 0,
             type: 'depend',
             binder: jnodes.binder,
-            model: {},
+            models: [{}],
             parent: {
               binder: jnodes.binder,
-              model: {},
+            }
+          }, {
+            id: 0,
+            type: 'depend',
+            binder: jnodes.binder,
+            models: [{}],
+            parent: {
+              binder: jnodes.binder,
+              models: [{}],
             }
           }]
         },
-      },
+      }],
     },
   };
   var data = { x: 1 };
@@ -260,7 +260,7 @@ let jnodes_guid: number = 0
     id: 0,
     type: 'bind',
     binder: jnodes.binder,
-    model: {},
+    models: [{}],
   };
   var $$binds = function() {
     return [$$scope]
@@ -269,14 +269,14 @@ let jnodes_guid: number = 0
     id: 0,
     type: 'depend',
     binder: jnodes.binder,
-    model: {},
+    models: [{}],
     parent: {
       id: 0,
       type: 'bind',
       binder: jnodes.binder,
-      model: {
+      models: [{
         $$binds: $$binds
-      },
+      }],
     }
   };
   var scope = {
@@ -285,16 +285,16 @@ let jnodes_guid: number = 0
     parent: {
       type: 'depend',
       binder: jnodes.binder,
-      model: {
+      models: [{
         $$binds: function () {
           return [{
             id: 0,
             type: 'bind',
             binder: jnodes.binder,
-            model: {},
+            models: [{}],
           }, parent, parent]
         }
-      },
+      }],
     },
   };
   var data = { x: 1 };
@@ -309,15 +309,12 @@ let jnodes_guid: number = 0
     <ul :bind="books" @create="books.loaded = 'done'">
     books.forEach(function (book) {
       <li :bind="book">
-        <:template name="book"/>
+        <a href="#{book.id}">#{book.title}</a>
       </li>
     });
     </ul>
     </script>
   </div>
-  <script type="text/jhtmls" id="book">
-  <a href="#{id}">#{title}</a>
-  </script>
   ```
   ```js
   jnodes.binder = new jnodes.Binder();
@@ -326,10 +323,6 @@ let jnodes_guid: number = 0
     var node = jnodes.Parser.parse(templateCode);
     var code = jnodes.Parser.build(node, bindObjectName, adapter_jhtmls);
     return jhtmls.render(code);
-  });
-  var bookRender = jnodes.binder.templateAdapter('jhtmls', document.querySelector('#book').innerHTML);
-  jnodes.binder.registerTemplate('book', function (scope) {
-    return bookRender(scope.model);
   });
   var div = document.querySelector('div');
   div.innerHTML = jnodes.binder.templateAdapter('jhtmls', div.querySelector('script').innerHTML)({
@@ -354,13 +347,6 @@ let jnodes_guid: number = 0
   // > Jane Eyre
 
   console.log(jnodes.binder.scope(div) === rootScope);
-  // > true
-
-  console.log(jnodes.binder.scope(div.querySelector('ul li a')).model.id === 1);
-  // > true
-
-  books.shift();
-  console.log(jnodes.binder.scope(div.querySelector('ul li a')).model.id === 2);
   // > true
   ```
  * @example bind():bind jhtmls 2
@@ -397,16 +383,6 @@ let jnodes_guid: number = 0
 
   console.log(books.loaded);
   // > done
-
-  console.log(JSON.stringify(jnodes.binder.scope(div.querySelector('ul li a')).model));
-  // > "book1"
-
-  console.log(JSON.stringify(jnodes.binder.scope(div.querySelector('ul li span')).model));
-  // > 1
-
-  books.shift();
-  console.log(JSON.stringify(jnodes.binder.scope(div.querySelector('ul li a')).model));
-  // > "book2"
 
   function findEventTarget(parent, target, selector) {
     var elements = [].slice.call(parent.querySelectorAll(selector));
@@ -445,7 +421,7 @@ let jnodes_guid: number = 0
   ```js
   var data = {x: 1, y: 2};
   var binder = new jnodes.Binder();
-  var scope = binder.bind(data, null, null);
+  var scope = binder.bind([data], null, null);
   var element = {};
   global.document = { querySelector: function(selector) {
     return element;
@@ -454,7 +430,7 @@ let jnodes_guid: number = 0
   console.log(JSON.stringify(element));
   // > {}
 
-  var scope = binder.bind(data, null, null, function (output) {
+  var scope = binder.bind([data], null, null, function (output) {
     output.push('<div></div>');
   });
   var element = {};
@@ -504,7 +480,6 @@ class Binder {
   _findElement: FindElementFunction
   _updateElement: UpdateElementFunction
   _attrsRender: AttrsRenderFunction
-  _templates: { [key: string]: TemplateRenderFunction }
   _checkers: { [type: string]: EventCheckerFunction }
   _adapters: { [key: string]: TemplateAdapterFunction } = {}
   _imports: object
@@ -513,7 +488,6 @@ class Binder {
   constructor(options?: BinderOptions) {
     options = options || {}
     this._binds = {}
-    this._templates = {}
     this._adapters = {}
 
     this._bindObjectName = options.bindObjectName || 'jnodes.binder'
@@ -523,7 +497,6 @@ class Binder {
     this._eventAttributePrefix = options.eventAttributePrefix || `data-jnodes-event-`
     this._imports = options.imports
 
-    this._templates = {}
     this._checkers = {}
 
     this._findElement = options.findElement || ((scope: Scope): Element => {
@@ -666,17 +639,6 @@ class Binder {
     })
   }
 
-  registerTemplate(templateName: string, render: TemplateRenderFunction) {
-    this._templates[templateName] = render
-  }
-  templateRender(templateName: string, scope: Scope): string {
-    let render = this._templates[templateName]
-    if (!render) {
-      return
-    }
-    return render(scope)
-  }
-
   registerChecker(eventType: string, checker: EventCheckerFunction) {
     this._checkers[eventType] = checker;
   }
@@ -703,17 +665,21 @@ class Binder {
   cleanChildren(scope: Scope) {
     if (scope.children) {
       scope.children.forEach((item) => {
-
-        let binds = item.model && item.model.$$binds && item.model.$$binds()
-        if (binds) {
-          // remove scope
-          let index = binds.indexOf(item)
-          if (index >= 0) {
-            binds.splice(index, 1)
-          }
+        if (!item.models) {
+          return
         }
-        delete this._binds[item.id]
+        item.models.forEach((model) => {
+          let binds = model && model.$$binds && model.$$binds()
+          if (binds) {
+            // remove scope
+            let index = binds.indexOf(item)
+            if (index >= 0) {
+              binds.splice(index, 1)
+            }
+          }
+        })
 
+        delete this._binds[item.id]
         this.cleanChildren(item)
         scope.children = []
         delete scope.methods
@@ -762,18 +728,18 @@ class Binder {
   /**
    * 数据绑定
    *
-   * @param model 绑定数据
+   * @param models 绑定数据集合
    * @param parent 父级作用域
    * @param outerRender 外渲染函数
    */
-  public bind(model: any, parent: Scope,
+  public bind(models: any[], parent: Scope,
     outerBindRender?: OuterRenderBindFunction,
     innerBindRender?: InnerRenderBindFunction,
   ): Scope {
 
     let scope: Scope = {
       type: 'bind',
-      model: model,
+      models: models,
       parent: parent,
       binder: this,
     }
@@ -805,8 +771,9 @@ class Binder {
 
     scope.id = (jnodes_guid++).toString(36)
     this._binds[scope.id] = scope
-    this.observer(model, scope);
-
+    models.forEach((model) => {
+      this.observer(model, scope)
+    })
     return scope
   }
 
@@ -819,17 +786,22 @@ class Binder {
 
     function pushParents(parents: Scope[], scope: Scope) {
       let parent = scope.parent
-      if (parent.model.$$binds) {
-        parent.model.$$binds().forEach((bind) => {
-          if (bind.type !== 'depend') {
-            if (parents.indexOf(bind) < 0) {
-              parents.push(bind)
-            }
-          } else {
-            pushParents(parents, bind)
-          }
-        })
+      if (!parent.models) {
+        return;
       }
+      parent.models.forEach((model) => {
+        if (model.$$binds) {
+          model.$$binds().forEach((bind) => {
+            if (bind.type !== 'depend') {
+              if (parents.indexOf(bind) < 0) {
+                parents.push(bind)
+              }
+            } else {
+              pushParents(parents, bind)
+            }
+          })
+        }
+      })
     }
 
     // 只绑定对象类型
@@ -864,20 +836,22 @@ class Binder {
   /**
    * 声明依赖关系
    *
-   * @param model 数据
+   * @param models 数据集合
    * @param scope 被依赖的作用域
    */
-  public depend(model: any, parent: Scope, outerBindRender: OuterRenderBindFunction) {
+  public depend(models: any[], parent: Scope, outerBindRender: OuterRenderBindFunction) {
     let scope: Scope = {
       type: 'depend',
-      model: model,
+      models: models,
       parent: parent,
       binder: this,
       outerRender: (output) => {
         return outerBindRender(output, scope, true)
       },
     }
-    this.observer(model, scope)
+    models.forEach((model) => {
+      this.observer(model, scope)
+    })
     scope.id = (jnodes_guid++).toString(36)
     this._binds[scope.id] = scope
     return scope
@@ -942,7 +916,7 @@ class Binder {
     ```js
     var binder = new jnodes.Binder();
 
-    var scope = binder.bind({ x: 1 }, null, function (output) {
+    var scope = binder.bind([{ x: 1 }], null, function (output) {
       output.push('<div></div>');
     });
     var element = {

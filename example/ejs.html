@@ -17,8 +17,7 @@
     <div id="books_ejs">
       <script type="text/ejs">
       <div>
-        <button cmd="remove">remove</button>
-        <button cmd="sort">sort</button>
+        <button @click="books.shift()">remove</button>
         <%
         function _sort() {
           books.$$asc = -(books.$$asc || 1);
@@ -27,18 +26,18 @@
           });
         }
         %>
-        <button :cmd="_sort">_sort</button>
+        <button @click="_sort()">sort</button>
       </div>
       <ul :bind="books">
       <% books.forEach(function (book) { %>
         <li :bind="book" class="book" :class="{ star: book.star }">
           <%- book.title %>
           <% if (book.star) { %>
-          <button cmd="star">🌟</button>
+          <button @click="book.star = !book.star">🌟</button>
           <% } else { %>
-          <button cmd="star">🌛</button>
+          <button @click="book.star = !book.star">🌛</button>
           <% } %>
-          <button @cmd="show(book.title)">show()</button>
+          <button @dblclick="show(book.title)">show()</button>
         </li>
       <% }); %>
       </ul>
@@ -79,36 +78,24 @@
 
   jnodes.binder.$$scope.element = element;
 
-  h5tap(element, 'button', function (element) {
-    var scope = binder.scope(element);
-    if (!scope) {
-      return;
+  function findEventTarget(parent, target, selector) {
+    var elements = [].slice.call(parent.querySelectorAll(selector));
+    while (target && elements.indexOf(target) < 0) {
+      target = target.parentNode;
     }
+    return target;
+  }
 
-    var cmd = element.getAttribute('cmd') || element.getAttribute('data-jnodes-event-cmd');
-    switch (cmd) {
-      case 'star':
-        scope.model.star = !scope.model.star;
-        break;
-      case 'remove':
-        scope.model.books.shift();
-        break;
-      case 'sort':
-        scope.model.books.$$asc = -(scope.model.books.$$asc || 1);
-        scope.model.books.sort(function (a, b) {
-          return a.title.localeCompare(b.title) * (scope.model.books.$$asc);
-        })
-        break;
-      default:
-        if (cmd && cmd[0] === '@') {
-          var method = (scope.methods || {})[cmd]
-          if (method) {
-            method()
-          }
-        }
-        break;
-    }
+  ['click', 'dblclick', 'keydown', 'keyup', 'focusin', 'focusout'].forEach(function (eventName) {
+    element.addEventListener(eventName, function (e) {
+      var target = findEventTarget(element, e.target, '[' + binder._eventAttributePrefix + eventName + ']');
+      if (!target) {
+        return;
+      }
+      binder.triggerScopeEvent(e, target);
+    })
   });
+
 })();
 </script>
 </html>

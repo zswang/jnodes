@@ -13,7 +13,7 @@ const typescript = require('gulp-typescript')
 const open = require('gulp-open')
 const examplejs = require('gulp-examplejs')
 
-const port = 20174;
+const port = 20174
 
 gulp.task('example', function() {
   return gulp.src([
@@ -85,7 +85,7 @@ gulp.task('typescript', function () {
       trigger: 'typescript'
     }))
     .pipe(typescript({
-      target: 'ES5'
+      target: 'ES5',
     }))
     .pipe(gulp.dest('./src/js'))
 })
@@ -101,6 +101,6 @@ gulp.task('adapter', function () {
     .pipe(gulp.dest('./lib/Adapter'))
 })
 
-gulp.task('build', ['typescript', 'adapter', 'jdists', 'example'])
-gulp.task('dist', ['typescript', 'adapter', 'jdists', 'example', 'uglify'])
-gulp.task('debug', ['typescript', 'adapter', 'jdists', 'connect', 'watch', 'open'])
+gulp.task('build', ['typescript', 'adapter', 'jdists'])
+gulp.task('dist', ['build', 'example', 'uglify'])
+gulp.task('debug', ['build', 'connect', 'watch', 'open'])

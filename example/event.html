@@ -13,7 +13,7 @@
     <ul id="books_jhtml">
       <!--script type="text/jhtmls">
       <li>
-        <button cmd="remove">remove</button>
+        <button @click="shfit()">remove</button>
         function _sort() {
           _sort.asc = -(_sort.asc || 1);
           sort(function (a, b) {
@@ -35,9 +35,13 @@
       });
       </script-->
       <script type="text/jhtmls">
-/***/ var _rootScope_ = jnodes.binder.bind(this, { root: true }, null, function (_output_, _scope_) {
+/***/ var _rootScope_ = jnodes.binder.bind([this], { root: true }, null, function (_output_, _scope_) {
       <li>
-        <button cmd="remove">remove</button>
+/***/   var _attrs_ = [{
+/***/     'name': '@click',
+/***/     'value': function () { shift() },
+/***/   }];
+        <button !#{jnodes.binder._attrsRender(_scope_, _attrs_)}>remove</button>
         function _sort() {
           _scope_.asc = -(_scope_.asc || 1);
           sort(function (a, b) {
@@ -45,13 +49,13 @@
           });
         }
 /***/   var _attrs_ = [{
-/***/     'name': ':cmd',
+/***/     'name': '@click',
 /***/     'value': _sort,
 /***/   }];
         <button !#{jnodes.binder._attrsRender(_scope_, _attrs_)}>sort</button>
       </li>
       forEach(function (book) {
-/***/   jnodes.binder.bind(book, _scope_, function (_output_, _scope_, holdInner) {
+/***/   jnodes.binder.bind([book], _scope_, function (_output_, _scope_, holdInner) {
 /***/     var _attrs_ = [
 /***/       { name: ":bind", value: book, quoted: '"'},
 /***/       { name: "class", value: "book", quoted: '"'},
@@ -59,11 +63,15 @@
 /***/     ];
         <li !#{jnodes.binder._attrsRender(_scope_, _attrs_)}>
 /***/     _scope_.innerRender = function(_output_) {
+/***/   var _attrs_ = [{
+/***/     'name': '@click',
+/***/     'value': function () { book.star = !book.star; },
+/***/   }];
           #{book.title}
           if (book.star) {
-          <button cmd="star">🌟</button>
+          <button !#{jnodes.binder._attrsRender(_scope_, _attrs_)}>🌟</button>
           } else {
-          <button cmd="star">🌛</button>
+          <button !#{jnodes.binder._attrsRender(_scope_, _attrs_)}>🌛</button>
           }
 /***/     }; if (holdInner) { _scope_.innerRender(_output_); }
         </li>
@@ -103,11 +111,11 @@
       </script-->
       <script type="text/ejs">
       <%
-/***/ var _rootScope_ = jnodes.binder.bind(locals, { root: true }, null, function (__output, _scope_) {
+/***/ var _rootScope_ = jnodes.binder.bind([locals], { root: true }, null, function (__output, _scope_) {
 /***/   var __append = __output.push.bind(__output);
       %>
       <%
-/***/   var attrs = [
+/***/   var _attrs_ = [
 /***/   {
 /***/     'name': '@create',
 /***/     'value': function (event) {
@@ -142,9 +150,15 @@
 /***/   },
 /***/   ];
       %>
-      <input <%- jnodes.binder._attrsRender(_scope_, attrs) %>>
+      <input <%- jnodes.binder._attrsRender(_scope_, _attrs_) %>>
       <li>
-        <button cmd="remove">remove</button>
+      <%
+/***/   var _attrs_ = [{
+/***/     'name': '@click',
+/***/     'value': function () { shift() },
+/***/   }];
+      %>
+        <button <%- jnodes.binder._attrsRender(_scope_, _attrs_) %>>remove</button>
         <%
         function _sort() {
           _scope_.asc = -(_scope_.asc || 1);
@@ -154,33 +168,37 @@
         }
         %>
         <%
-/***/   var attrs = [{
-/***/     'name': ':cmd',
+/***/   var _attrs_ = [{
+/***/     'name': '@click',
 /***/     'value': _sort,
 /***/   }];
         %>
-        <button <%- jnodes.binder._attrsRender(_scope_, attrs) %>>sort</button>
+        <button <%- jnodes.binder._attrsRender(_scope_, _attrs_) %>>sort</button>
       </li>
       <% forEach(function (book) { %>
       <%
-/***/    jnodes.binder.bind(book, _scope_, function (__output, _scope_, holdInner) {
+/***/    jnodes.binder.bind([book], _scope_, function (__output, _scope_, holdInner) {
 /***/      var __append = __output.push.bind(__output);
-/***/      var attrs = [
+/***/      var _attrs_ = [
 /***/        { name: ":bind", value: book, quoted: '"'},
 /***/        { name: "class", value: "book", quoted: '"'},
 /***/        { name: ":class", value: { star: book.star }, quoted: '"' },
 /***/      ];
       %>
-        <li <%- jnodes.binder._attrsRender(_scope_, attrs) %>>
+        <li <%- jnodes.binder._attrsRender(_scope_, _attrs_) %>>
       <%
 /***/      (_scope_.innerRender = function(__output) {
 /***/        var __append = __output.push.bind(__output);
+/***/   var _attrs_ = [{
+/***/     'name': '@click',
+/***/     'value': function () { book.star = !book.star; },
+/***/   }];
       %>
              <%= book.title %>
       <%     if (book.star) { %>
-          <button cmd="star">🌟</button>
+          <button <%- jnodes.binder._attrsRender(_scope_, _attrs_) %>>🌟</button>
       <%     } else { %>
-          <button cmd="star">🌛</button>
+          <button <%- jnodes.binder._attrsRender(_scope_, _attrs_) %>>🌛</button>
       <%     } %>
 
       <%
@@ -306,38 +324,6 @@
         binder.triggerScopeEvent(e, target);
       })
     })
-
-    h5tap(element, '[cmd]', function (element, event) {
-      var scope = binder.scope(element) || rootScope;
-      var cmd = element.getAttribute('cmd');
-      switch (cmd) {
-        case 'star':
-          scope.model.star = !scope.model.star;
-
-          break;
-        case 'remove':
-
-          books.shift();
-          break;
-        case 'sort':
-          if (!books.asc) {
-            books.asc = 1;
-          }
-          books.asc = -books.asc;
-          books.sort(function (a, b) {
-            return a.title.localeCompare(b.title) * (books.asc);
-          })
-          break;
-        default:
-          if (cmd[0] === '@') {
-            var method = (scope.methods || {})[cmd]
-            if (method) {
-              method.call(element, event)
-            }
-          }
-          break;
-      }
-    });
   }
   bind('#books_jhtml', books);
   bind('#books_ejs', books);

@@ -22,7 +22,7 @@ describe("src/ts/Binder.ts", function () {
   var data = {x: 1, y: 2};
   var rootScope = {};
   var count = 0;
-  jnodes.binder.bind(data, rootScope, function (output) {
+  jnodes.binder.bind([data], rootScope, function (output) {
     output.push('<div></div>');
     count++;
   });
@@ -49,23 +49,22 @@ describe("src/ts/Binder.ts", function () {
   assert.equal(examplejs_printLines.join("\n"), "undefined"); examplejs_printLines = [];
   examplejs_print(JSON.stringify(jnodes.binder.templateAdapter('none')));
   assert.equal(examplejs_printLines.join("\n"), "undefined"); examplejs_printLines = [];
-  examplejs_print(JSON.stringify(jnodes.binder.templateRender('none')));
-  assert.equal(examplejs_printLines.join("\n"), "undefined"); examplejs_printLines = [];
   examplejs_print(JSON.stringify(jnodes.binder._attrsRender(rootScope)));
   assert.equal(examplejs_printLines.join("\n"), "\"\""); examplejs_printLines = [];
   var scope = {
     children: [{
-      model: {
+      models: [{
         $$binds: function () {
           return [];
         }
-      }
+      }]
     }]
   };
   jnodes.binder.cleanChildren(scope);
   var scope = {
     children: [{
-      model: {}
+      models: [{}]
+    },{
     }]
   };
   jnodes.binder.cleanChildren(scope);
@@ -77,7 +76,7 @@ describe("src/ts/Binder.ts", function () {
     parent: {
       type: 'bind',
       binder: jnodes.binder,
-      model: {}
+      models: [{}]
     }
   };
   var data = { x: 1 };
@@ -90,25 +89,33 @@ describe("src/ts/Binder.ts", function () {
     parent: {
       type: 'depend',
       binder: jnodes.binder,
-      model: {
+      models: [{
         $$binds: function () {
           return [{
             id: 0,
             type: 'bind',
             binder: jnodes.binder,
-            model: {},
+            models: [{}],
           }, {
             id: 0,
             type: 'depend',
             binder: jnodes.binder,
-            model: {},
+            models: [{}],
             parent: {
               binder: jnodes.binder,
-              model: {},
+            }
+          }, {
+            id: 0,
+            type: 'depend',
+            binder: jnodes.binder,
+            models: [{}],
+            parent: {
+              binder: jnodes.binder,
+              models: [{}],
             }
           }]
         },
-      },
+      }],
     },
   };
   var data = { x: 1 };
@@ -119,7 +126,7 @@ describe("src/ts/Binder.ts", function () {
     id: 0,
     type: 'bind',
     binder: jnodes.binder,
-    model: {},
+    models: [{}],
   };
   var $$binds = function() {
     return [$$scope]
@@ -128,14 +135,14 @@ describe("src/ts/Binder.ts", function () {
     id: 0,
     type: 'depend',
     binder: jnodes.binder,
-    model: {},
+    models: [{}],
     parent: {
       id: 0,
       type: 'bind',
       binder: jnodes.binder,
-      model: {
+      models: [{
         $$binds: $$binds
-      },
+      }],
     }
   };
   var scope = {
@@ -144,16 +151,16 @@ describe("src/ts/Binder.ts", function () {
     parent: {
       type: 'depend',
       binder: jnodes.binder,
-      model: {
+      models: [{
         $$binds: function () {
           return [{
             id: 0,
             type: 'bind',
             binder: jnodes.binder,
-            model: {},
+            models: [{}],
           }, parent, parent]
         }
-      },
+      }],
     },
   };
   var data = { x: 1 };
@@ -162,7 +169,7 @@ describe("src/ts/Binder.ts", function () {
   });
           
   it("jsdom@bind():bind jhtmls", function (done) {
-    jsdom.env("  <div>\n    <script type=\"text/jhtmls\">\n    <h1 :class=\"{book: Math.random() > 0.5}\">Books</h1>\n    <ul :bind=\"books\" @create=\"books.loaded = 'done'\">\n    books.forEach(function (book) {\n      <li :bind=\"book\">\n        <:template name=\"book\"/>\n      </li>\n    });\n    </ul>\n    </script>\n  </div>\n  <script type=\"text/jhtmls\" id=\"book\">\n  <a href=\"#{id}\">#{title}</a>\n  </script>", {
+    jsdom.env("  <div>\n    <script type=\"text/jhtmls\">\n    <h1 :class=\"{book: Math.random() > 0.5}\">Books</h1>\n    <ul :bind=\"books\" @create=\"books.loaded = 'done'\">\n    books.forEach(function (book) {\n      <li :bind=\"book\">\n        <a href=\"#{book.id}\">#{book.title}</a>\n      </li>\n    });\n    </ul>\n    </script>\n  </div>", {
         features: {
           FetchExternalResources : ["script", "link"],
           ProcessExternalResources: ["script"]
@@ -190,10 +197,6 @@ describe("src/ts/Binder.ts", function () {
     var code = jnodes.Parser.build(node, bindObjectName, adapter_jhtmls);
     return jhtmls.render(code);
   });
-  var bookRender = jnodes.binder.templateAdapter('jhtmls', document.querySelector('#book').innerHTML);
-  jnodes.binder.registerTemplate('book', function (scope) {
-    return bookRender(scope.model);
-  });
   var div = document.querySelector('div');
   div.innerHTML = jnodes.binder.templateAdapter('jhtmls', div.querySelector('script').innerHTML)({
     books: books
@@ -217,13 +220,6 @@ describe("src/ts/Binder.ts", function () {
   assert.equal(examplejs_printLines.join("\n"), "Jane Eyre"); examplejs_printLines = [];
 
   examplejs_print(jnodes.binder.scope(div) === rootScope);
-  assert.equal(examplejs_printLines.join("\n"), "true"); examplejs_printLines = [];
-
-  examplejs_print(jnodes.binder.scope(div.querySelector('ul li a')).model.id === 1);
-  assert.equal(examplejs_printLines.join("\n"), "true"); examplejs_printLines = [];
-
-  books.shift();
-  examplejs_print(jnodes.binder.scope(div.querySelector('ul li a')).model.id === 2);
   assert.equal(examplejs_printLines.join("\n"), "true"); examplejs_printLines = [];
   });
           
@@ -268,16 +264,6 @@ describe("src/ts/Binder.ts", function () {
   examplejs_print(books.loaded);
   assert.equal(examplejs_printLines.join("\n"), "done"); examplejs_printLines = [];
 
-  examplejs_print(JSON.stringify(jnodes.binder.scope(div.querySelector('ul li a')).model));
-  assert.equal(examplejs_printLines.join("\n"), "\"book1\""); examplejs_printLines = [];
-
-  examplejs_print(JSON.stringify(jnodes.binder.scope(div.querySelector('ul li span')).model));
-  assert.equal(examplejs_printLines.join("\n"), "1"); examplejs_printLines = [];
-
-  books.shift();
-  examplejs_print(JSON.stringify(jnodes.binder.scope(div.querySelector('ul li a')).model));
-  assert.equal(examplejs_printLines.join("\n"), "\"book2\""); examplejs_printLines = [];
-
   function findEventTarget(parent, target, selector) {
     var elements = [].slice.call(parent.querySelectorAll(selector));
     while (target && elements.indexOf(target) < 0) {
@@ -316,7 +302,7 @@ describe("src/ts/Binder.ts", function () {
     examplejs_printLines = [];
   var data = {x: 1, y: 2};
   var binder = new jnodes.Binder();
-  var scope = binder.bind(data, null, null);
+  var scope = binder.bind([data], null, null);
   var element = {};
   global.document = { querySelector: function(selector) {
     return element;
@@ -325,7 +311,7 @@ describe("src/ts/Binder.ts", function () {
   examplejs_print(JSON.stringify(element));
   assert.equal(examplejs_printLines.join("\n"), "{}"); examplejs_printLines = [];
 
-  var scope = binder.bind(data, null, null, function (output) {
+  var scope = binder.bind([data], null, null, function (output) {
     output.push('<div></div>');
   });
   var element = {};
@@ -394,7 +380,7 @@ describe("src/ts/Binder.ts", function () {
     examplejs_printLines = [];
     var binder = new jnodes.Binder();
 
-    var scope = binder.bind({ x: 1 }, null, function (output) {
+    var scope = binder.bind([{ x: 1 }], null, function (output) {
       output.push('<div></div>');
     });
     var element = {

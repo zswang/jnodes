@@ -17,7 +17,7 @@ describe("src/ts/Adapter/ejs.ts", function () {
   
 
   it("jsdom@adapter_ejs:base1", function (done) {
-    jsdom.env("  <div>\n    <script type=\"text/ejs\">\n    <h1 :class=\"{book: Math.random() > 0.5}\">Books</h1>\n    <ul :bind=\"books\" @create=\"books.loaded = 'done'\">\n    <% books.forEach(function (book) { %>\n      <li :bind=\"book\">\n        <:template name=\"book\"/>\n      </li>\n    <% }); %>\n    </ul>\n    </script>\n  </div>\n  <script type=\"text/ejs\" id=\"book\">\n  <a :href=\"id\"><%= title %></a>\n  </script>", {
+    jsdom.env("  <div>\n    <script type=\"text/ejs\">\n    <h1 :class=\"{book: Math.random() > 0.5}\">Books</h1>\n    <ul :bind=\"books\" @create=\"books.loaded = 'done'\">\n    <% books.forEach(function (book) { %>\n      <li :bind=\"book\">\n        <a :href=\"book.id\"><%= book.title %></a>\n      </li>\n    <% }); %>\n    </ul>\n    </script>\n  </div>", {
         features: {
           FetchExternalResources : ["script", "link"],
           ProcessExternalResources: ["script"]
@@ -45,10 +45,6 @@ describe("src/ts/Adapter/ejs.ts", function () {
     var code = jnodes.Parser.build(node, bindObjectName, adapter_ejs);
     return ejs.compile(code);
   });
-  var bookRender = jnodes.binder.templateAdapter('ejs', document.querySelector('#book').innerHTML);
-  jnodes.binder.registerTemplate('book', function (scope) {
-    return bookRender(scope.model);
-  });
   var div = document.querySelector('div');
   div.innerHTML = jnodes.binder.templateAdapter('ejs', div.querySelector('script').innerHTML)({
     books: books
@@ -72,13 +68,6 @@ describe("src/ts/Adapter/ejs.ts", function () {
   assert.equal(examplejs_printLines.join("\n"), "Jane Eyre"); examplejs_printLines = [];
 
   examplejs_print(jnodes.binder.scope(div) === rootScope);
-  assert.equal(examplejs_printLines.join("\n"), "true"); examplejs_printLines = [];
-
-  examplejs_print(jnodes.binder.scope(div.querySelector('ul li a')).model.id === 1);
-  assert.equal(examplejs_printLines.join("\n"), "true"); examplejs_printLines = [];
-
-  books.shift();
-  examplejs_print(jnodes.binder.scope(div.querySelector('ul li a')).model.id === 2);
   assert.equal(examplejs_printLines.join("\n"), "true"); examplejs_printLines = [];
   });
           
@@ -122,16 +111,6 @@ describe("src/ts/Adapter/ejs.ts", function () {
 
   examplejs_print(books.loaded);
   assert.equal(examplejs_printLines.join("\n"), "done"); examplejs_printLines = [];
-
-  examplejs_print(JSON.stringify(jnodes.binder.scope(div.querySelector('ul li a')).model));
-  assert.equal(examplejs_printLines.join("\n"), "\"book1\""); examplejs_printLines = [];
-
-  examplejs_print(JSON.stringify(jnodes.binder.scope(div.querySelector('ul li span')).model));
-  assert.equal(examplejs_printLines.join("\n"), "1"); examplejs_printLines = [];
-
-  books.shift();
-  examplejs_print(JSON.stringify(jnodes.binder.scope(div.querySelector('ul li a')).model));
-  assert.equal(examplejs_printLines.join("\n"), "\"book2\""); examplejs_printLines = [];
 
   function findEventTarget(parent, target, selector) {
     var elements = [].slice.call(parent.querySelectorAll(selector));

@@ -14,15 +14,12 @@ import { H5Node } from "../Types"
     <ul :bind="books" @create="books.loaded = 'done'">
     <% books.forEach(function (book) { %>
       <li :bind="book">
-        <:template name="book"/>
+        <a :href="book.id"><%= book.title %></a>
       </li>
     <% }); %>
     </ul>
     </script>
   </div>
-  <script type="text/ejs" id="book">
-  <a :href="id"><%= title %></a>
-  </script>
   ```
   ```js
   jnodes.binder = new jnodes.Binder();
@@ -31,10 +28,6 @@ import { H5Node } from "../Types"
     var node = jnodes.Parser.parse(templateCode);
     var code = jnodes.Parser.build(node, bindObjectName, adapter_ejs);
     return ejs.compile(code);
-  });
-  var bookRender = jnodes.binder.templateAdapter('ejs', document.querySelector('#book').innerHTML);
-  jnodes.binder.registerTemplate('book', function (scope) {
-    return bookRender(scope.model);
   });
   var div = document.querySelector('div');
   div.innerHTML = jnodes.binder.templateAdapter('ejs', div.querySelector('script').innerHTML)({
@@ -59,13 +52,6 @@ import { H5Node } from "../Types"
   // > Jane Eyre
 
   console.log(jnodes.binder.scope(div) === rootScope);
-  // > true
-
-  console.log(jnodes.binder.scope(div.querySelector('ul li a')).model.id === 1);
-  // > true
-
-  books.shift();
-  console.log(jnodes.binder.scope(div.querySelector('ul li a')).model.id === 2);
   // > true
   ```
  * @example adapter_ejs:base2
@@ -102,16 +88,6 @@ import { H5Node } from "../Types"
 
   console.log(books.loaded);
   // > done
-
-  console.log(JSON.stringify(jnodes.binder.scope(div.querySelector('ul li a')).model));
-  // > "book1"
-
-  console.log(JSON.stringify(jnodes.binder.scope(div.querySelector('ul li span')).model));
-  // > 1
-
-  books.shift();
-  console.log(JSON.stringify(jnodes.binder.scope(div.querySelector('ul li a')).model));
-  // > "book2"
 
   function findEventTarget(parent, target, selector) {
     var elements = [].slice.call(parent.querySelectorAll(selector));
@@ -295,7 +271,7 @@ function adapter_ejs(node: H5Node, bindObjectName: string) {
   let indent = node.indent || ''
   let inserFlag = `/***/ `
   if (node.type === 'root') {
-    node.beforebegin = `<%${indent}${inserFlag}var _rootScope_ = ${bindObjectName}.bind(locals, { root: true }, null, function (__output, _scope_) { var __append = __output.push.bind(__output); %>`
+    node.beforebegin = `<%${indent}${inserFlag}var _rootScope_ = ${bindObjectName}.bind([locals], { root: true }, null, function (__output, _scope_) { var __append = __output.push.bind(__output); %>`
     node.afterend = `<%${indent}${inserFlag}}); _rootScope_.innerRender(__output); ${bindObjectName}.$$scope = _rootScope_;%>`
     return
   }
@@ -308,28 +284,18 @@ function adapter_ejs(node: H5Node, bindObjectName: string) {
     return
   }
 
-  if (node.tag === ':template') {
-    node.attrs.some((attr) => {
-      if (attr.name === 'name') {
-        node.overwriteNode = `<%${indent}${inserFlag}__append(${bindObjectName}.templateRender(${JSON.stringify(attr.value)}, _scope_, ${bindObjectName}.bind)); %>`
-        return true
-      }
-    })
-    return
-  }
-
   let varintAttrs = `<%${indent}${inserFlag}var _attrs_ = [\n`
   let hasOverwriteAttr
   node.attrs.forEach((attr) => {
     let value
     if (attr.name[0] === ':') {
       if (attr.name === ':bind') {
-        node.beforebegin = `<%${indent}${inserFlag}${bindObjectName}.bind(${attr.value}, _scope_, function (__output, _scope_, holdInner) { var __append = __output.push.bind(__output); %>`
+        node.beforebegin = `<%${indent}${inserFlag}${bindObjectName}.bind([${attr.value}], _scope_, function (__output, _scope_, holdInner) { var __append = __output.push.bind(__output); %>`
         node.beforeend = `<%${indent}${inserFlag}_scope_.innerRender = function(__output) { var __append = __output.push.bind(__output); %>`
         node.afterbegin = `<%${indent}${inserFlag}}; if (holdInner) { _scope_.innerRender(__output); }%>`
         node.afterend = `<%${indent}${inserFlag}}).outerRender(__output, true); %>`
       } else if (attr.name === ':depend') {
-        node.beforebegin = `<%${indent}${inserFlag}${bindObjectName}.depend(${attr.value}, _scope_, function (__output, _scope_) { var __append = __output.push.bind(__output); %>`
+        node.beforebegin = `<%${indent}${inserFlag}${bindObjectName}.depend([${attr.value}], _scope_, function (__output, _scope_) { var __append = __output.push.bind(__output); %>`
         node.afterend = `<%${indent}${inserFlag}}).outerRender(__output); %>`
       }
       hasOverwriteAttr = true

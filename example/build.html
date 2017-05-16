@@ -18,45 +18,29 @@
     <div id="books_jhtml">
       <script type="text/jhtmls">
       <div>
-        <button cmd="remove">remove</button>
-        <button cmd="sort">sort</button>
+        <button @click="books.shift()">remove</button>
         function _sort() {
           books.$$asc = -(books.$$asc || 1);
           books.sort(function (a, b) {
             return a.title.localeCompare(b.title) * books.$$asc;
           });
         }
-        <button :cmd="_sort">_sort</button>
+        <button @click="_sort()">sort</button>
       </div>
       <ul :bind="books">
       books.forEach(function (book) {
         <li :bind="book" class="book" :class="{ star: book.star }">
           <span @dblclick="show(book.title)">#{book.title}</span>
           if (book.star) {
-          <button cmd="star">🌟</button>
+          <button @click="book.star = !book.star">🌟</button>
           } else {
-          <button cmd="star">🌛</button>
+          <button @click="book.star = !book.star">🌛</button>
           }
         </li>
       });
       </ul>
       </script>
     </div>
-    <ul id="books_ejs">
-      <script type="text/ejs">
-      <li><button cmd="remove">remove</button></li>
-      <% forEach(function (book) { %>
-        <li :bind="book" class="book" :class="{ star: book.star }">
-          <%= book.title %>
-      <%    if (book.star) { %>
-          <button cmd="star">🌟</button>
-      <%    } else { %>
-          <button cmd="star">🌛</button>
-      <%    } %>
-        </li>
-      <% }); %>
-      </script>
-    </ul>
 </body>
 <script src="../node_modules/jhtmls/jhtmls.js"></script>
 <script src="../node_modules/ejs/ejs.js"></script>
@@ -89,7 +73,7 @@
   var template = jnodes.Parser.build(root, binder._bindObjectName, function (node, bindObjectName) {
     var indent = node.indent || ''
     if (node.type === 'root') {
-      node.beforebegin = `${indent}/***/ var _rootScope_ = ${bindObjectName}.bind(this, { root: true }, null, function (_output_, _scope_) {`;
+      node.beforebegin = `${indent}/***/ var _rootScope_ = ${bindObjectName}.bind([this], { root: true }, null, function (_output_, _scope_) {`;
       node.afterend = `\n${indent}/***/ }); _rootScope_.innerRender(_output_); ${bindObjectName}.$$scope = _rootScope_;`
       return;
     }
@@ -126,7 +110,7 @@
 
     node.beforebegin = '';
     if (bindDataValue) {
-      node.beforebegin += `\n${indent}/***/ ${bindObjectName}.bind(${bindDataValue}, _scope_, function (_output_, _scope_, holdInner) {\n`;
+      node.beforebegin += `\n${indent}/***/ ${bindObjectName}.bind([${bindDataValue}], _scope_, function (_output_, _scope_, holdInner) {\n`;
       node.beforeend = `\n${indent}/***/ _scope_.innerRender = function(_output_) {\n`;
       node.afterbegin = `\n${indent}/***/ }; if (holdInner) { _scope_.innerRender(_output_); }\n`
       node.afterend = `\n${indent}/***/ }).outerRender(_output_, true);\n`
@@ -136,8 +120,6 @@
     node.beforebegin += varintAttrs;
     node.overwriteAttrs = `!#{${bindObjectName}._attrsRender(_scope_, _attrs_)}`;
   });
-
-  // textarea.value = template;
 
   element.innerHTML = jhtmls.render(template, rootData);
   jnodes.binder.$$scope.element = element;
@@ -150,66 +132,16 @@
     return target;
   }
 
-  function triggerScopeEvent(event, target) {
-    target = target || event.target;
-    var cmd = target.getAttribute('data-jnodes-event-' + event.type);
-    if (cmd && cmd[0] === '@') {
-      var scope = binder.scope(target);
-      var method = (scope.methods || {})[cmd]
-      if (method) {
-        method.call(target, event);
-      }
-    }
-  }
-
   ['click', 'dblclick', 'keydown', 'keyup', 'focusin', 'focusout'].forEach(function (eventName) {
     element.addEventListener(eventName, function (e) {
-      if (e.target.getAttribute('data-jnodes-event-input')) {
-        if (eventName === 'focusin') {
-          e.target.addEventListener('input', triggerScopeEvent)
-        } else if (eventName === 'focusout') {
-          e.target.removeEventListener('input', triggerScopeEvent)
-        }
-      }
-
-      var target = findEventTarget(element, e.target, '[data-jnodes-event-' + eventName + ']');
+      var target = findEventTarget(element, e.target, '[' + binder._eventAttributePrefix + eventName + ']');
       if (!target) {
         return;
       }
-      triggerScopeEvent(e, target);
+      binder.triggerScopeEvent(e, target);
     })
   });
 
-  h5tap(element, 'button', function (element) {
-    var scope = binder.scope(element);
-    if (!scope) {
-      return;
-    }
-    var cmd = element.getAttribute('cmd');
-    switch (cmd) {
-      case 'star':
-        scope.model.star = !scope.model.star;
-
-        break;
-      case 'remove':
-        scope.model.books.shift();
-        break;
-      case 'sort':
-        scope.model.books.$$asc = -(scope.model.books.$$asc || 1);
-        scope.model.books.sort(function (a, b) {
-          return a.title.localeCompare(b.title) * (scope.model.books.$$asc);
-        })
-        break;
-      default:
-        if (cmd[0] === '@') {
-          var method = (scope.methods || {})[cmd]
-          if (method) {
-            method()
-          }
-        }
-        break;
-    }
-  });
 })();
 </script>
 </html>
